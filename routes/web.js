@@ -71,7 +71,7 @@ router.post('/books/:id/highlights/:hid/edit', (req, res) => {
     if (!h || h.book_id != req.params.id) return res.status(404).render('404');
     const { text, note, color } = req.body;
     if (text && text.trim()) updateHighlightText(h.id, { text: text.trim(), note, color });
-    res.redirect(`/books/${req.params.id}`);
+    res.redirect(`/books/${req.params.id}#highlight-${h.id}`);
 });
 
 router.post('/books/:id/highlights/:hid/delete', (req, res) => {
@@ -97,7 +97,7 @@ router.post('/books/:id/highlights/:hid/review-toggle', (req, res) => {
     if (!h || h.book_id != req.params.id) return res.status(404).render('404');
     if (isInReview(h.id)) removeFromReview(h.id);
     else addToReview(h.id);
-    res.redirect(`/books/${req.params.id}`);
+    res.redirect(`/books/${req.params.id}#highlight-${h.id}`);
 });
 
 router.get('/review', (req, res) => {

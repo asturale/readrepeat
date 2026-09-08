@@ -37,9 +37,9 @@
     </form>
   </details>
 
-  <form method="post" action="/books/<%= book.id %>/merge" id="merge-form">
+  <div>
     <p>
-      <button type="submit" class="secondary" onclick="return confirm('<%= t('book.merge_confirm') %>')"><%= t('book.merge_selection') %></button>
+      <button type="button" id="merge-btn" class="secondary"><%= t('book.merge_selection') %></button>
     </p>
 
     <% highlights.forEach(function(h) { %>
@@ -56,7 +56,7 @@
                 <input type="text" name="note" value="<%= h.note || '' %>" placeholder="<%= t('book.note_label') %>" style="margin-top:0.4em; width:100%">
                 <p>
                   <button type="submit"><%= t('book.save') %></button>
-                  <a href="/books/<%= book.id %>"><button type="button" class="secondary"><%= t('book.cancel') %></button></a>
+                  <a href="/books/<%= book.id %>#highlight-<%= h.id %>"><button type="button" class="secondary"><%= t('book.cancel') %></button></a>
                 </p>
               </form>
             <% } else { %>
@@ -75,7 +75,7 @@
                 &middot; <%= h.source %>
               </div>
               <div style="margin-top:0.7em; display:flex; gap:0.5em; flex-wrap:wrap;">
-                <a href="/books/<%= book.id %>?edit=<%= h.id %>"><button type="button" class="secondary"><%= t('book.edit') %></button></a>
+                <a href="/books/<%= book.id %>?edit=<%= h.id %>#highlight-<%= h.id %>"><button type="button" class="secondary"><%= t('book.edit') %></button></a>
                 <a href="/highlights/<%= h.id %>/share"><button type="button" class="secondary"><%= t('book.share') %></button></a>
                 <form method="post" action="/books/<%= book.id %>/highlights/<%= h.id %>/review-toggle" style="display:inline">
                   <button type="submit" class="secondary"><%= h.in_review ? t('book.in_review') : t('book.excluded_from_review') %></button>
@@ -90,7 +90,34 @@
       </div>
       <% } %>
     <% }) %>
-  </form>
+  </div>
+  <script>
+    // Highlight checkboxes used to live inside the SAME <form> as the merge
+    // button -- but they also sit inside each highlight's per-item edit/
+    // review-toggle/delete <form>s. Nested <form> elements are invalid
+    // HTML: a browser drops the inner <form> tag entirely and its
+    // controls end up submitting the OUTER form instead, so those buttons
+    // silently hit /merge (a no-op with <2 ids checked) rather than their
+    // own action. Fix: no wrapping <form> at all -- gather checked boxes
+    // with JS and build one just for the actual merge submission.
+    document.getElementById('merge-btn').onclick = () => {
+      const ids = [...document.querySelectorAll('input[name="ids"]:checked')].map((el) => el.value);
+      if (ids.length < 2) return;
+      if (!confirm(<%- JSON.stringify(t('book.merge_confirm')) %>)) return;
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = '/books/<%= book.id %>/merge';
+      for (const id of ids) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ids';
+        input.value = id;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+    };
+  </script>
 </main>
 </body>
 </html>
