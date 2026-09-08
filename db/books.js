@@ -3,20 +3,30 @@ import { db } from './index.js';
 const STOPWORDS = new Set(['the', 'a', 'an', 'de', 'het', 'een']);
 const DIACRITIC_RE = new RegExp('[\\u0300-\\u036f]', 'g');
 
-function norm(s) {
+function normWords(s) {
     return (s || '')
         .toLowerCase()
         .normalize('NFKD')
         .replace(DIACRITIC_RE, '')
         .replace(/[^a-z0-9\s]/g, ' ')
         .split(/\s+/)
-        .filter((w) => w && !STOPWORDS.has(w))
-        .join(' ')
-        .trim();
+        .filter((w) => w && !STOPWORDS.has(w));
+}
+
+function norm(s) {
+    return normWords(s).join(' ').trim();
+}
+
+// Author names arrive in inconsistent order across sources ("Ingram,
+// Daniel M." from one import vs "Daniel M. Ingram" from another) --
+// sorting the words makes the key order-invariant so both land on the
+// same book. Title word order is left alone (it changes meaning there).
+function normAuthor(s) {
+    return normWords(s).sort().join(' ').trim();
 }
 
 export function normalizeKey(title, author) {
-    return `${norm(title)}::${norm(author)}`;
+    return `${norm(title)}::${normAuthor(author)}`;
 }
 
 export function findOrCreateBook({ title, author, cover_url }) {
@@ -66,4 +76,66 @@ export function setReviewWeight(bookId, weight) {
 // deleting a book removes everything under it in one go.
 export function deleteBook(id) {
     db.prepare('DELETE FROM books WHERE id = ?').run(id);
+}
+
+// Moves every highlight from `mergeId` onto `survivorId`, then deletes the
+// now-empty `mergeId` book. A highlight is skipped (left to be cleaned up
+// by dedupeHighlightsInBook) rather than moved if the survivor already has
+// one with the same (source, source_id) -- that would violate the UNIQUE
+// constraint. Cover/hardcover_id/author on the survivor are filled in from
+// the merged book if the survivor lacks them.
+export function mergeBooks(survivorId, mergeId) {
+    if (survivorId === mergeId) return;
+    const survivor = getBook(survivorId);
+    const merged = getBook(mergeId);
+    if (!survivor || !merged) return;
+
+    const tx = db.transaction(() => {
+        const highlights = db.prepare('SELECT id, source, source_id FROM highlights WHERE book_id = ?').all(mergeId);
+        for (const h of highlights) {
+            const conflict = db
+                .prepare('SELECT 1 FROM highlights WHERE book_id = ? AND source = ? AND source_id = ?')
+                .get(survivorId, h.source, h.source_id);
+            if (conflict) {
+                db.prepare('DELETE FROM highlights WHERE id = ?').run(h.id);
+            } else {
+                db.prepare('UPDATE highlights SET book_id = ? WHERE id = ?').run(survivorId, h.id);
+            }
+        }
+        db.prepare(
+            `UPDATE books SET cover_url = COALESCE(cover_url, ?), hardcover_id = COALESCE(hardcover_id, ?),
+             author = COALESCE(author, ?), updated_at = ? WHERE id = ?`
+        ).run(merged.cover_url, merged.hardcover_id, merged.author, Date.now(), survivorId);
+        db.prepare('DELETE FROM books WHERE id = ?').run(mergeId);
+    });
+    tx();
+}
+
+// Within one book, collapses highlights whose TEXT is byte-identical
+// (trimmed) into one row -- catches the case where the same highlight
+// arrived via two different sources/source_ids (e.g. the original bulk
+// import and an ongoing per-device sync), which the UNIQUE(book_id,
+// source, source_id) constraint alone doesn't prevent. Keeps the oldest
+// (earliest created_at) row, deletes the rest via straight DELETE (not
+// mergeHighlights' text-concatenation -- these are exact duplicates, not
+// highlights worth combining).
+export function dedupeHighlightsInBook(bookId) {
+    const rows = db
+        .prepare('SELECT id, text, created_at FROM highlights WHERE book_id = ? AND is_heading = 0 ORDER BY created_at ASC')
+        .all(bookId);
+    const seen = new Map();
+    let removed = 0;
+    const tx = db.transaction(() => {
+        for (const h of rows) {
+            const key = h.text.trim();
+            if (seen.has(key)) {
+                db.prepare('DELETE FROM highlights WHERE id = ?').run(h.id);
+                removed++;
+            } else {
+                seen.set(key, h.id);
+            }
+        }
+    });
+    tx();
+    return removed;
 }

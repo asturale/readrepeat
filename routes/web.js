@@ -23,11 +23,11 @@ const router = express.Router();
 router.use(requireLogin);
 
 router.get('/', (req, res) => {
-    const books = listBooksWithCounts();
+    const bookCount = listBooksWithCounts().length;
     const reviewDue = reviewQueueSize();
     const batchSize = findUserById(req.session.userId).review_batch_size;
     res.render('dashboard', {
-        books,
+        bookCount,
         totalHighlights: countHighlights(),
         reviewDue,
         reviewSessionCount: Math.min(reviewDue, batchSize),
@@ -35,6 +35,10 @@ router.get('/', (req, res) => {
         recentHighlights: listRecentHighlights(8),
         reviewEnrolled: reviewEnrolledCount(),
     });
+});
+
+router.get('/books', (req, res) => {
+    res.render('books', { books: listBooksWithCounts(), totalHighlights: countHighlights() });
 });
 
 router.get('/books/:id', (req, res) => {

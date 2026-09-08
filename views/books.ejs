@@ -1,0 +1,30 @@
+<% var title = t('books.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <h1 class="page-title"><%= t('books.heading') %></h1>
+  <p class="page-sub"><%= t('dashboard.stats', { count: totalHighlights, books: books.length }) %></p>
+  <% if (books.length === 0) { %>
+    <div class="empty-state card">
+      <h2><%= t('dashboard.empty_title') %></h2>
+      <p><%= t('dashboard.empty_body') %> <a href="/account"><%= t('dashboard.empty_link') %></a>.</p>
+    </div>
+  <% } else { %>
+  <div class="book-grid">
+    <% books.forEach(function(b) { %>
+    <a href="/books/<%= b.id %>">
+      <% if (b.cover_url) { %>
+        <img class="book-cover" src="<%= b.cover_url %>" alt="">
+      <% } else { %>
+        <div class="book-cover"><%= b.title %></div>
+      <% } %>
+      <div class="book-title"><%= b.title %></div>
+      <% if (b.author) { %><div class="book-author"><%= b.author %></div><% } %>
+      <div class="book-count"><%= b.highlight_count %> <%= t(b.highlight_count === 1 ? 'highlight_count_one' : 'highlight_count_other') %></div>
+    </a>
+    <% }) %>
+  </div>
+  <% } %>
+</main>
+</body>
+</html>

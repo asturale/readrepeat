@@ -43,9 +43,17 @@ export function upsertHighlight({ book, text, note, location, color, chapter, so
     const now = Date.now();
     const created = created_at || now;
     const processed = processNote(note);
-    const existing = db
+    let existing = db
         .prepare('SELECT id, tags FROM highlights WHERE book_id = ? AND source = ? AND source_id = ?')
         .get(b.id, source, sid);
+    if (!existing) {
+        // Same book, exact same text, but arriving via a DIFFERENT source/
+        // source_id (e.g. the one-time bulk import vs. an ongoing per-
+        // device sync) -- the UNIQUE constraint alone doesn't catch this,
+        // but it's still the same highlight to Koen. Treat as existing
+        // rather than creating a text-identical duplicate row.
+        existing = db.prepare('SELECT id, tags FROM highlights WHERE book_id = ? AND text = ?').get(b.id, text);
+    }
     if (existing) {
         db.prepare(
             `UPDATE highlights SET text = ?, note = COALESCE(?, note), location = COALESCE(?, location),
