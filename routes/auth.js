@@ -1,6 +1,7 @@
 import express from 'express';
 import { userCount } from '../db/index.js';
 import { createUser, findUserByUsername, verifyPassword } from '../db/auth.js';
+import { checkPasswordStrength, MIN_LENGTH } from '../lib/password-policy.js';
 
 const router = express.Router();
 
@@ -14,8 +15,15 @@ router.get('/setup', (req, res) => {
 router.post('/setup', (req, res) => {
     if (userCount() > 0) return res.redirect('/login');
     const { username, password, password2 } = req.body;
-    if (!username || !password || password.length < 8) {
+    if (!username) {
         return res.render('setup', { error: res.locals.t('setup.error_required') });
+    }
+    const strength = checkPasswordStrength(password);
+    if (strength === 'too_short') {
+        return res.render('setup', { error: res.locals.t('setup.error_password_short', { min: MIN_LENGTH }) });
+    }
+    if (strength === 'too_common') {
+        return res.render('setup', { error: res.locals.t('setup.error_password_common') });
     }
     if (password !== password2) {
         return res.render('setup', { error: res.locals.t('setup.error_mismatch') });

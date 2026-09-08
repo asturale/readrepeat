@@ -16,6 +16,7 @@ import {
     listLeastRecentlySeen,
 } from '../db/highlights.js';
 import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode, verifyPassword, setPassword } from '../db/auth.js';
+import { checkPasswordStrength, MIN_LENGTH } from '../lib/password-policy.js';
 import { logSessionDay, getStreak, getMonthCalendar } from '../db/streak.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
 import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
@@ -284,8 +285,12 @@ router.post('/account/password', (req, res) => {
     if (!current_password || !verifyPassword(current_password, user.password_hash)) {
         return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_current') }));
     }
-    if (!new_password || new_password.length < 8) {
-        return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_short') }));
+    const strength = checkPasswordStrength(new_password);
+    if (strength === 'too_short') {
+        return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_short', { min: MIN_LENGTH }) }));
+    }
+    if (strength === 'too_common') {
+        return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_common') }));
     }
     if (new_password !== new_password2) {
         return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_mismatch') }));
