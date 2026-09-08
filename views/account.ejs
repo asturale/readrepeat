@@ -8,6 +8,20 @@
     <a href="/about"><span>ℹ️ <%= t('account.about_link') %></span> <span>→</span></a>
   </div>
 
+  <div class="card">
+    <h2 style="margin-top:0; display:flex; align-items:center; gap:0.5em;">
+      <%= t('account.streak_heading') %>
+      <% if (streak > 0) { %><span class="streak-badge">🔥 <%= streak %></span><% } %>
+    </h2>
+    <% if (streak === 0) { %><p style="color:var(--text-dim)"><%= t('account.streak_none') %></p><% } %>
+    <p style="color:var(--text-faint); font-size:0.85em; text-transform:capitalize; margin-bottom:0.6em;"><%= calendarLabel %></p>
+    <div class="streak-calendar">
+      <% calendarMonth.forEach(function(d) { %>
+      <div class="streak-day <%= d.done ? 'done' : '' %> <%= d.isToday ? 'today' : '' %>"><%= d.day %></div>
+      <% }) %>
+    </div>
+  </div>
+
   <% if (newToken) { %>
   <div class="card">
     <strong><%= t('account.new_token_created') %></strong> <%= t('account.new_token_copy') %>

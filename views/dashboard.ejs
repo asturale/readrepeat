@@ -2,6 +2,11 @@
 <%- include('partials/head', { title }) %>
 <%- include('partials/nav') %>
 <main>
+  <% if (streak > 0) { %>
+  <div style="display:flex; justify-content:flex-end; margin-bottom:0.6em;">
+    <div class="streak-badge" title="<%= t('dashboard.streak', { count: streak }) %>">🔥 <%= streak %></div>
+  </div>
+  <% } %>
   <% if (reviewPreview) { %>
   <% var authorsText = reviewPreview.authors.length > 0 ? reviewPreview.authors.join(', ') + ', ' + t('dashboard.and_more') : '' %>
   <div class="card hero-review">
@@ -43,6 +48,7 @@
     <div class="feed-sort-toggle">
       <a href="/?feed=recent" class="<%= feedMode === 'recent' ? 'active' : '' %>"><%= t('dashboard.feed_recent') %></a>
       <a href="/?feed=random" class="<%= feedMode === 'random' ? 'active' : '' %>"><%= t('dashboard.feed_random') %></a>
+      <a href="/?feed=oldest" class="<%= feedMode === 'oldest' ? 'active' : '' %>"><%= t('dashboard.feed_oldest') %></a>
     </div>
   </div>
   <div class="card" style="padding:0 1.5em;">

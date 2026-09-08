@@ -82,6 +82,16 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
     auth       TEXT NOT NULL,
     created_at INTEGER NOT NULL
 );
+
+-- One row per (user, calendar day) a review session was completed on --
+-- server-TZ local date as 'YYYY-MM-DD', not a timestamp, so a day either
+-- counts or doesn't regardless of how many sessions happened that day.
+-- Drives both the streak counter and the Account calendar.
+CREATE TABLE IF NOT EXISTS session_log (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date    TEXT NOT NULL,
+    PRIMARY KEY (user_id, date)
+);
 `);
 
 // Idempotent column migration -- `CREATE TABLE IF NOT EXISTS` above is a
@@ -121,6 +131,9 @@ ensureColumn('users', 'text_scale', 'text_scale REAL NOT NULL DEFAULT 0.85');
 // on today's date, NOT that the whole (potentially huge, backfilled) due
 // queue has hit zero.
 ensureColumn('users', 'last_session_completed_at', 'last_session_completed_at INTEGER');
+// Dashboard "Feed" sort choice, remembered across visits -- 'recent' |
+// 'random' | 'oldest'.
+ensureColumn('users', 'feed_mode', "feed_mode TEXT NOT NULL DEFAULT 'recent'");
 
 export function userCount() {
     return db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
