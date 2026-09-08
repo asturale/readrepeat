@@ -26,6 +26,11 @@
 
   "book.back": "All books",
   "book.review_frequency": "Review frequency",
+  "book.edit_metadata": "Edit book details",
+  "book.title_label": "Title",
+  "book.author_label": "Author",
+  "book.cover_url_label": "Cover URL",
+  "book.metadata_save": "Save",
   "book.delete_book": "Delete book",
   "book.delete_book_confirm": "Permanently delete this entire book and all its highlights? This cannot be undone.",
   "book.add_manual": "Add a highlight manually",
@@ -65,6 +70,13 @@
   "account.language_auto": "Automatic (browser language)",
   "account.language_save": "Save",
   "account.settings_link": "Settings",
+  "account.about_link": "About ReadRepeat",
+  "about.title": "About ReadRepeat",
+  "about.version": "Version",
+  "about.stats": "{highlights} highlights in {books} books",
+  "about.description": "Self-hosted, open-source Readwise alternative.",
+  "about.repo": "Source on GitHub",
+  "about.back": "Account",
 
   "push.reminder_body": "{count} highlights to review",
 

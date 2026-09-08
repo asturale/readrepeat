@@ -26,6 +26,11 @@
 
   "book.back": "Alle boeken",
   "book.review_frequency": "Review-frequentie",
+  "book.edit_metadata": "Boekgegevens bewerken",
+  "book.title_label": "Titel",
+  "book.author_label": "Auteur",
+  "book.cover_url_label": "Cover-URL",
+  "book.metadata_save": "Opslaan",
   "book.delete_book": "Boek verwijderen",
   "book.delete_book_confirm": "Dit hele boek en al zijn highlights permanent verwijderen? Dit kan niet ongedaan worden gemaakt.",
   "book.add_manual": "Highlight handmatig toevoegen",
@@ -65,6 +70,13 @@
   "account.language_auto": "Automatisch (browsertaal)",
   "account.language_save": "Opslaan",
   "account.settings_link": "Instellingen",
+  "account.about_link": "Over ReadRepeat",
+  "about.title": "Over ReadRepeat",
+  "about.version": "Versie",
+  "about.stats": "{highlights} highlights in {books} boeken",
+  "about.description": "Zelfgehoste, open-source Readwise-alternatief.",
+  "about.repo": "Broncode op GitHub",
+  "about.back": "Account",
 
   "push.reminder_body": "{count} highlights te reviewen",
 
