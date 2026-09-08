@@ -186,6 +186,7 @@ function toDiscoverCards(batch) {
         noteHtml: h.note ? renderInlineMarkdown(h.note) : null,
         bookTitleHtml: renderInlineMarkdown(h.book_title),
         bookAuthorHtml: h.book_author ? renderInlineMarkdown(h.book_author) : null,
+        coverUrl: h.cover_url || null,
     }));
 }
 
