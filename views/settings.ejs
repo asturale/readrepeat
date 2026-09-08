@@ -54,12 +54,13 @@
 
   <div class="card">
     <h2 style="margin-top:0"><%= t('settings.password_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('settings.password_help', { min: 12 }) %></p>
     <% if (passwordError) { %><p style="color:var(--danger)"><%= passwordError %></p><% } %>
     <% if (passwordSuccess) { %><p style="color:var(--accent)"><%= t('settings.password_success') %></p><% } %>
     <form method="post" action="/account/password" style="display:flex; flex-direction:column; gap:0.6em; max-width:320px;">
       <input type="password" name="current_password" placeholder="<%= t('settings.password_current') %>" autocomplete="current-password" required>
-      <input type="password" name="new_password" placeholder="<%= t('settings.password_new') %>" autocomplete="new-password" required>
-      <input type="password" name="new_password2" placeholder="<%= t('settings.password_confirm') %>" autocomplete="new-password" required>
+      <input type="password" name="new_password" placeholder="<%= t('settings.password_new') %>" autocomplete="new-password" required minlength="12">
+      <input type="password" name="new_password2" placeholder="<%= t('settings.password_confirm') %>" autocomplete="new-password" required minlength="12">
       <button type="submit"><%= t('settings.password_save') %></button>
     </form>
   </div>
