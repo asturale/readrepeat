@@ -12,6 +12,7 @@ import {
     deleteHighlight,
     mergeHighlights,
     listRecentHighlights,
+    listRandomHighlights,
 } from '../db/highlights.js';
 import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById } from '../db/auth.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
@@ -36,6 +37,7 @@ router.get('/', (req, res) => {
     const reviewDue = reviewQueueSize();
     const reviewEnrolled = reviewEnrolledCount();
     const batchSize = findUserById(req.session.userId).review_batch_size;
+    const feedMode = req.query.feed === 'random' ? 'random' : 'recent';
     res.render('dashboard', {
         bookCount,
         totalHighlights: countHighlights(),
@@ -45,7 +47,8 @@ router.get('/', (req, res) => {
         // already falls back to not-yet-due highlights when nothing is due).
         reviewPreview: reviewDue > 0 || reviewEnrolled > 0 ? getDueReviewPreview() : null,
         reviewDone: reviewDue === 0 && reviewEnrolled > 0,
-        recentHighlights: listRecentHighlights(8),
+        feedMode,
+        recentHighlights: feedMode === 'random' ? listRandomHighlights(8) : listRecentHighlights(8),
     });
 });
 

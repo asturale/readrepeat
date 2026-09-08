@@ -38,7 +38,13 @@
       <p><%= t('dashboard.empty_body') %> <a href="/account"><%= t('dashboard.empty_link') %></a>.</p>
     </div>
   <% } else if (recentHighlights.length > 0) { %>
-  <h2 style="margin-top:1em"><%= t('dashboard.feed_heading') %></h2>
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.6em; margin-top:1em;">
+    <h2 style="margin:0;"><%= t('dashboard.feed_heading') %></h2>
+    <div class="feed-sort-toggle">
+      <a href="/?feed=recent" class="<%= feedMode === 'recent' ? 'active' : '' %>"><%= t('dashboard.feed_recent') %></a>
+      <a href="/?feed=random" class="<%= feedMode === 'random' ? 'active' : '' %>"><%= t('dashboard.feed_random') %></a>
+    </div>
+  </div>
   <div class="card" style="padding:0 1.5em;">
     <% recentHighlights.forEach(function(h) { %>
     <a href="/books/<%= h.book_id %>#highlight-<%= h.id %>" class="feed-item">

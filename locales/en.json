@@ -21,6 +21,8 @@
   "dashboard.review_done_subtitle": "You've done all your reviews for now.",
   "dashboard.review_more_button": "Review more anyway",
   "dashboard.feed_heading": "Recently added",
+  "dashboard.feed_recent": "Recent",
+  "dashboard.feed_random": "Random",
   "books.title": "Books",
   "books.heading": "Your books",
   "books.view_all": "View all books",
