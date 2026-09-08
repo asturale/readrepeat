@@ -1,6 +1,6 @@
 {
   "nav.search_placeholder": "Zoeken…",
-  "nav.highlights": "Highlights",
+  "nav.books": "Boeken",
   "nav.review": "Review",
   "nav.account": "Account",
   "nav.logout": "Uitloggen",
@@ -18,6 +18,9 @@
   "dashboard.and_more": "en meer",
   "dashboard.review_button": "Review",
   "dashboard.feed_heading": "Recent toegevoegd",
+  "books.title": "Boeken",
+  "books.heading": "Je boeken",
+  "books.view_all": "Alle boeken bekijken",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
 

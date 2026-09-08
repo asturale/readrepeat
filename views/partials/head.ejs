@@ -39,10 +39,11 @@
   header.topbar .topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 1em; flex-wrap: wrap; }
   header.topbar .brand { font-weight: 800; font-size: 1.15em; color: var(--text); }
   header.topbar nav { display: flex; align-items: center; gap: 0.3em; flex-wrap: wrap; }
-  header.topbar nav a { color: var(--text-dim); font-weight: 500; font-size: 0.8em; display: flex; flex-direction: column; align-items: center; gap: 0.15em; padding: 0.3em 0.6em; border-radius: var(--radius-sm); }
-  header.topbar nav a span { font-size: 1.25em; }
+  header.topbar nav a { color: var(--text-dim); font-weight: 500; font-size: 0.8em; display: flex; flex-direction: column; align-items: center; gap: 0.2em; padding: 0.3em 0.6em; border-radius: var(--radius-sm); }
+  header.topbar nav a img { width: 1.6em; height: 1.6em; }
   header.topbar nav a:hover { color: var(--text); background: var(--surface-hover); }
-  header.topbar nav button.secondary { padding: 0.5em 0.7em; font-size: 1.1em; line-height: 1; }
+  header.topbar nav button.secondary { padding: 0.4em 0.6em; line-height: 1; display: flex; align-items: center; }
+  header.topbar nav button.secondary img { width: 1.6em; height: 1.6em; }
   header.topbar .search-box { position: relative; margin-top: 0.7em; }
   header.topbar .search-box input { width: 100%; padding: 0.5em 0.8em 0.5em 2.2em; }
   header.topbar .search-box::before { content: '🔍'; position: absolute; left: 0.7em; top: 50%; transform: translateY(-50%); font-size: 0.85em; opacity: 0.55; pointer-events: none; }
@@ -67,6 +68,8 @@
   .highlight.color-blue { border-left-color: #4a90d9; }
   .highlight.color-pink { border-left-color: #d94a90; }
   .highlight.color-green { border-left-color: #4ad98c; }
+  .highlight:target { outline: 2px solid var(--accent); outline-offset: 2px; animation: highlight-flash 1.8s ease-out; }
+  @keyframes highlight-flash { 0% { background: var(--accent-dim); } 100% { background: var(--surface); } }
   .highlight-chapter { font-size: 0.72em; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5em; font-weight: 600; }
   .highlight-text { line-height: 1.55; }
   .md-mark { background: rgba(224,196,25,0.35); color: inherit; border-radius: 3px; padding: 0 0.15em; }

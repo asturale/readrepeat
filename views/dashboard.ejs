@@ -22,38 +22,21 @@
   </div>
   <% } %>
 
-  <h1 class="page-title"><%= t('dashboard.heading') %></h1>
   <p class="page-sub">
-    <%= t('dashboard.stats', { count: totalHighlights, books: books.length }) %>
+    <%= t('dashboard.stats', { count: totalHighlights, books: bookCount }) %> &middot; <a href="/books"><%= t('books.view_all') %></a>
     <% if (reviewEnrolled > 0) { %> &middot; <a href="/review"><%= t('dashboard.to_review', { count: reviewDue }) %></a> (<%= t('dashboard.enrolled', { count: reviewEnrolled }) %>)<% } %>
   </p>
-  <% if (books.length === 0) { %>
+
+  <% if (bookCount === 0) { %>
     <div class="empty-state card">
       <h2><%= t('dashboard.empty_title') %></h2>
       <p><%= t('dashboard.empty_body') %> <a href="/account"><%= t('dashboard.empty_link') %></a>.</p>
     </div>
-  <% } else { %>
-  <div class="book-grid">
-    <% books.forEach(function(b) { %>
-    <a href="/books/<%= b.id %>">
-      <% if (b.cover_url) { %>
-        <img class="book-cover" src="<%= b.cover_url %>" alt="">
-      <% } else { %>
-        <div class="book-cover"><%= b.title %></div>
-      <% } %>
-      <div class="book-title"><%= b.title %></div>
-      <% if (b.author) { %><div class="book-author"><%= b.author %></div><% } %>
-      <div class="book-count"><%= b.highlight_count %> <%= t(b.highlight_count === 1 ? 'highlight_count_one' : 'highlight_count_other') %></div>
-    </a>
-    <% }) %>
-  </div>
-  <% } %>
-
-  <% if (recentHighlights.length > 0) { %>
-  <h2 style="margin-top:2.2em"><%= t('dashboard.feed_heading') %></h2>
+  <% } else if (recentHighlights.length > 0) { %>
+  <h2 style="margin-top:1em"><%= t('dashboard.feed_heading') %></h2>
   <div class="card" style="padding:0 1.5em;">
     <% recentHighlights.forEach(function(h) { %>
-    <a href="/books/<%= h.book_id %>" class="feed-item">
+    <a href="/books/<%= h.book_id %>#highlight-<%= h.id %>" class="feed-item">
       <% if (h.cover_url) { %>
         <img class="feed-cover" src="<%= h.cover_url %>" alt="">
       <% } else { %>
