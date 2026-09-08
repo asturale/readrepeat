@@ -161,3 +161,24 @@ export function dedupeHighlightsInBook(bookId) {
     tx();
     return removed;
 }
+
+// UI-facing "merge these N selected books" action: picks whichever has the
+// most highlights as the survivor (most likely to be the complete/canonical
+// one, same heuristic used for the original Buddha-book duplicate fix),
+// merges the rest into it, then dedupes -- a merge routinely creates fresh
+// text-identical duplicates (the same highlight existed in more than one of
+// the merged books), so this always needs to run right after.
+export function mergeSelectedBooks(ids) {
+    if (ids.length < 2) return null;
+    const withCounts = ids
+        .map((id) => ({ id, count: db.prepare('SELECT COUNT(*) AS n FROM highlights WHERE book_id = ?').get(id).n }))
+        .filter((b) => getBook(b.id));
+    if (withCounts.length < 2) return null;
+    withCounts.sort((a, b) => b.count - a.count);
+    const survivorId = withCounts[0].id;
+    for (const b of withCounts.slice(1)) {
+        mergeBooks(survivorId, b.id);
+    }
+    dedupeHighlightsInBook(survivorId);
+    return survivorId;
+}

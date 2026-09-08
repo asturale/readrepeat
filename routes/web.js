@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { requireLogin } from './middleware.js';
-import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata } from '../db/books.js';
+import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata, mergeSelectedBooks } from '../db/books.js';
 import {
     listHighlightsForBook,
     countHighlights,
@@ -69,6 +69,14 @@ router.get('/', (req, res) => {
 router.get('/books', (req, res) => {
     const sort = ['recent', 'title', 'author', 'highlights'].includes(req.query.sort) ? req.query.sort : 'recent';
     res.render('books', { books: listBooksWithCounts(sort), totalHighlights: countHighlights(), sort });
+});
+
+router.post('/books/merge', (req, res) => {
+    let ids = req.body.ids || [];
+    if (!Array.isArray(ids)) ids = [ids];
+    ids = ids.map(Number).filter(Boolean);
+    mergeSelectedBooks(ids);
+    res.redirect('/books');
 });
 
 router.get('/books/:id', (req, res) => {

@@ -35,6 +35,9 @@
   "books.sort_title": "Title (A-Z)",
   "books.sort_author": "Author (A-Z)",
   "books.sort_highlights": "Most highlights",
+  "books.merge_selected": "Merge selected books",
+  "books.select_for_merge": "Select for merging",
+  "books.merge_confirm": "Merge the selected books into one (including their highlights, duplicate highlights will be removed)? This cannot be undone.",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
 

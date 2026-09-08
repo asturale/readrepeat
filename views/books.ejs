@@ -18,21 +18,56 @@
       <p><%= t('dashboard.empty_body') %> <a href="/account"><%= t('dashboard.empty_link') %></a>.</p>
     </div>
   <% } else { %>
+  <p>
+    <button type="button" id="merge-books-btn" class="secondary" disabled><%= t('books.merge_selected') %></button>
+  </p>
   <div class="book-grid">
     <% books.forEach(function(b) { %>
-    <a href="/books/<%= b.id %>">
-      <% if (b.cover_url) { %>
-        <img class="book-cover" src="<%= b.cover_url %>" alt="">
-      <% } else { %>
-        <div class="book-cover"><%= b.title %></div>
-      <% } %>
-      <div class="book-title"><%= b.title %></div>
-      <% if (b.author) { %><div class="book-author"><%= b.author %></div><% } %>
-      <div class="book-count"><%= b.highlight_count %> <%= t(b.highlight_count === 1 ? 'highlight_count_one' : 'highlight_count_other') %></div>
-    </a>
+    <div class="book-card">
+      <input type="checkbox" class="book-select" value="<%= b.id %>" title="<%= t('books.select_for_merge') %>">
+      <a href="/books/<%= b.id %>">
+        <% if (b.cover_url) { %>
+          <img class="book-cover" src="<%= b.cover_url %>" alt="">
+        <% } else { %>
+          <div class="book-cover"><%= b.title %></div>
+        <% } %>
+        <div class="book-title"><%= b.title %></div>
+        <% if (b.author) { %><div class="book-author"><%= b.author %></div><% } %>
+        <div class="book-count"><%= b.highlight_count %> <%= t(b.highlight_count === 1 ? 'highlight_count_one' : 'highlight_count_other') %></div>
+      </a>
+    </div>
     <% }) %>
   </div>
   <% } %>
 </main>
+<script>
+  // Checkboxes deliberately sit OUTSIDE each <a> (siblings, not nested) --
+  // an interactive control inside a big clickable link either steals the
+  // navigation click or gets swallowed by it depending on the browser.
+  const mergeBtn = document.getElementById('merge-books-btn');
+  const boxes = () => [...document.querySelectorAll('.book-select')];
+  if (mergeBtn) {
+    boxes().forEach((box) => box.addEventListener('change', () => {
+      mergeBtn.disabled = boxes().filter((b) => b.checked).length < 2;
+    }));
+    mergeBtn.onclick = () => {
+      const ids = boxes().filter((b) => b.checked).map((b) => b.value);
+      if (ids.length < 2) return;
+      if (!confirm(<%- JSON.stringify(t('books.merge_confirm')) %>)) return;
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = '/books/merge';
+      for (const id of ids) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ids';
+        input.value = id;
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+    };
+  }
+</script>
 </body>
 </html>

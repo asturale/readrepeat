@@ -35,6 +35,9 @@
   "books.sort_title": "Titel (A-Z)",
   "books.sort_author": "Auteur (A-Z)",
   "books.sort_highlights": "Meeste highlights",
+  "books.merge_selected": "Geselecteerde boeken samenvoegen",
+  "books.select_for_merge": "Selecteren om samen te voegen",
+  "books.merge_confirm": "Geselecteerde boeken samenvoegen tot 1 (inclusief hun highlights, dubbele highlights worden verwijderd)? Dit kan niet ongedaan worden gemaakt.",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
 
