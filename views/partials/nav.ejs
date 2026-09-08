@@ -1,16 +1,20 @@
 <header class="topbar">
-  <a class="brand" href="/"><img src="/icons/icon-192.png" alt="" style="width:1.3em; height:1.3em; border-radius:6px; vertical-align:-0.3em; margin-right:0.3em;">ReadRepeat</a>
+  <div class="topbar-row">
+    <a class="brand" href="/"><img src="/icons/icon-192.png" alt="" style="width:1.3em; height:1.3em; border-radius:6px; vertical-align:-0.3em; margin-right:0.3em;">ReadRepeat</a>
+    <% if (user) { %>
+    <nav>
+      <a href="/" title="<%= t('nav.highlights') %>"><span aria-hidden="true">📚</span> <%= t('nav.highlights') %></a>
+      <a href="/review" title="<%= t('nav.review') %>"><span aria-hidden="true">🔁</span> <%= t('nav.review') %></a>
+      <a href="/account" title="<%= t('nav.account') %>"><span aria-hidden="true">👤</span> <%= t('nav.account') %></a>
+      <form method="post" action="/logout" style="display:inline">
+        <button type="submit" class="secondary" title="<%= t('nav.logout') %>"><span aria-hidden="true">⏻</span></button>
+      </form>
+    </nav>
+    <% } %>
+  </div>
   <% if (user) { %>
-  <nav>
-    <form method="get" action="/search" class="search-box">
-      <input type="search" name="q" placeholder="<%= t('nav.search_placeholder') %>" value="<%= typeof q !== 'undefined' ? q : '' %>">
-    </form>
-    <a href="/"><%= t('nav.highlights') %></a>
-    <a href="/review"><%= t('nav.review') %></a>
-    <a href="/account"><%= t('nav.account') %></a>
-    <form method="post" action="/logout" style="display:inline">
-      <button type="submit" class="secondary"><%= t('nav.logout') %></button>
-    </form>
-  </nav>
+  <form method="get" action="/search" class="search-box">
+    <input type="search" name="q" placeholder="<%= t('nav.search_placeholder') %>" value="<%= typeof q !== 'undefined' ? q : '' %>">
+  </form>
   <% } %>
 </header>
