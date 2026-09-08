@@ -15,6 +15,10 @@ export function verifyPassword(password, stored) {
     return check.length === expected.length && crypto.timingSafeEqual(check, expected);
 }
 
+export function setPassword(userId, password) {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), userId);
+}
+
 export function createUser(username, password) {
     const now = Date.now();
     const info = db

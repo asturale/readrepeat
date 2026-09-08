@@ -15,7 +15,7 @@ import {
     listRandomHighlights,
     listLeastRecentlySeen,
 } from '../db/highlights.js';
-import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode } from '../db/auth.js';
+import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode, verifyPassword, setPassword } from '../db/auth.js';
 import { logSessionDay, getStreak, getMonthCalendar } from '../db/streak.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
 import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
@@ -228,48 +228,74 @@ router.get('/search', (req, res) => {
     res.render('search', { q, results });
 });
 
-function accountLocals(req, res, newToken) {
+function accountLocals(req, res) {
     const now = new Date();
     return {
-        tokens: listApiTokens(req.session.userId),
-        newToken,
-        storedLocale: findUserById(req.session.userId).locale,
         streak: getStreak(req.session.userId),
         calendarMonth: getMonthCalendar(req.session.userId, now.getFullYear(), now.getMonth()),
         calendarLabel: now.toLocaleDateString(res.locals.dateLocale, { month: 'long', year: 'numeric' }),
     };
 }
 
-router.get('/account', (req, res) => {
-    res.render('account', accountLocals(req, res, null));
-});
-
-router.post('/account/tokens', (req, res) => {
-    const token = createApiToken(req.session.userId, req.body.label || null);
-    res.render('account', accountLocals(req, res, token));
-});
-
-router.post('/account/tokens/:id/revoke', (req, res) => {
-    revokeApiToken(req.session.userId, req.params.id);
-    res.redirect('/account');
-});
-
-router.post('/account/locale', (req, res) => {
-    const { locale } = req.body;
-    if (!locale || SUPPORTED_LOCALES.includes(locale)) setUserLocale(req.session.userId, locale || null);
-    res.redirect('/account');
-});
-
-router.get('/account/settings', (req, res) => {
+// API tokens, language and password all moved here from /account (Koen:
+// "verplaats api token beheer en taalinstelling naar de instellingen
+// pagina") -- /account is now just the menu + streak + logout.
+function settingsLocals(req, extra) {
     const user = findUserById(req.session.userId);
-    res.render('settings', {
+    return {
         reviewBatchSize: user.review_batch_size,
         reminderFrequencyHours: user.reminder_frequency_hours,
         reminderHour: user.reminder_hour,
         textScale: user.text_scale,
         pushSubscribed: hasSubscription(user.id),
         vapidPublicKey: VAPID_PUBLIC,
-    });
+        tokens: listApiTokens(req.session.userId),
+        newToken: null,
+        storedLocale: user.locale,
+        passwordError: null,
+        passwordSuccess: false,
+        ...extra,
+    };
+}
+
+router.get('/account', (req, res) => {
+    res.render('account', accountLocals(req, res));
+});
+
+router.post('/account/tokens', (req, res) => {
+    const token = createApiToken(req.session.userId, req.body.label || null);
+    res.render('settings', settingsLocals(req, { newToken: token }));
+});
+
+router.post('/account/tokens/:id/revoke', (req, res) => {
+    revokeApiToken(req.session.userId, req.params.id);
+    res.redirect('/account/settings');
+});
+
+router.post('/account/locale', (req, res) => {
+    const { locale } = req.body;
+    if (!locale || SUPPORTED_LOCALES.includes(locale)) setUserLocale(req.session.userId, locale || null);
+    res.redirect('/account/settings');
+});
+
+router.post('/account/password', (req, res) => {
+    const { current_password, new_password, new_password2 } = req.body;
+    const user = findUserById(req.session.userId);
+    if (!current_password || !verifyPassword(current_password, user.password_hash)) {
+        return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_current') }));
+    }
+    if (!new_password || new_password.length < 8) {
+        return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_short') }));
+    }
+    if (new_password !== new_password2) {
+        return res.render('settings', settingsLocals(req, { passwordError: res.locals.t('settings.password_error_mismatch') }));
+    }
+    setPassword(user.id, new_password);
+    res.render('settings', settingsLocals(req, { passwordSuccess: true }));
+});
+
+router.get('/account/settings', (req, res) => {
+    res.render('settings', settingsLocals(req));
 });
 
 router.post('/account/settings/review-batch-size', (req, res) => {
