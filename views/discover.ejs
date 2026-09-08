@@ -4,7 +4,9 @@
 <style>
   .discover-feed { max-width:640px; margin:0 auto; padding:1em 1.2em 4em; display:flex; flex-direction:column; gap:1.2em; }
   .discover-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:1.8em 1.6em; }
-  .discover-card .book-line { font-size:0.85em; color:var(--text-dim); margin-bottom:1.2em; }
+  .discover-card .book-line-row { display:flex; align-items:center; gap:0.7em; margin-bottom:1.2em; }
+  .discover-card .discover-cover { width:36px; aspect-ratio:2/3; object-fit:cover; border-radius:4px; flex-shrink:0; background:var(--surface-hover); }
+  .discover-card .book-line { font-size:0.85em; color:var(--text-dim); }
   .discover-card .text { font-family: Georgia, 'Times New Roman', serif; font-size:calc(1.3rem * var(--text-scale)); line-height:1.5; color:var(--text); }
   .discover-card .note { margin-top:1em; font-size:0.95em; color:var(--text-dim); font-style:italic; }
   .discover-card .card-icons { display:flex; gap:1em; margin-top:1.5em; padding-top:1.1em; border-top:1px solid var(--border); }
@@ -75,7 +77,10 @@
     el.className = 'discover-card';
     el.dataset.id = c.id;
     el.innerHTML =
+      '<div class="book-line-row">' +
+      (c.coverUrl ? '<img class="discover-cover" src="' + esc(c.coverUrl) + '" alt="">' : '') +
       '<div class="book-line">' + c.bookTitleHtml + (c.bookAuthorHtml ? ' — ' + c.bookAuthorHtml : '') + '</div>' +
+      '</div>' +
       '<div class="text">' + c.textHtml + '</div>' +
       (c.noteHtml ? '<div class="note">📝 ' + c.noteHtml + '</div>' : '') +
       '<div class="card-icons">' +
