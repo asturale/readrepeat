@@ -131,12 +131,17 @@ export function countHighlights() {
 }
 
 // Dashboard "Feed": most recently added highlights (not heading markers),
-// newest first, for a quick glance at what just came in.
+// newest first, for a quick glance at what just came in. Only highlights
+// still enrolled in review show up here -- "Niet meer" (discard) in review
+// removes a highlight from the reviews table, and Koen wants that to also
+// drop it from the feed (it stays visible on the book page and in search).
 export function listRecentHighlights(limit = 10) {
     return db
         .prepare(
             `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
-             FROM highlights h JOIN books b ON b.id = h.book_id
+             FROM highlights h
+             JOIN books b ON b.id = h.book_id
+             JOIN reviews r ON r.highlight_id = h.id
              WHERE h.is_heading = 0
              ORDER BY h.created_at DESC
              LIMIT ?`
@@ -146,12 +151,14 @@ export function listRecentHighlights(limit = 10) {
 
 // Dashboard "Feed" alternate mode: a random sample instead of newest-first,
 // for rediscovering older highlights rather than only ever seeing the tail
-// end of the latest import.
+// end of the latest import. Same in-review filter as listRecentHighlights.
 export function listRandomHighlights(limit = 10) {
     return db
         .prepare(
             `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
-             FROM highlights h JOIN books b ON b.id = h.book_id
+             FROM highlights h
+             JOIN books b ON b.id = h.book_id
+             JOIN reviews r ON r.highlight_id = h.id
              WHERE h.is_heading = 0
              ORDER BY RANDOM()
              LIMIT ?`
@@ -162,13 +169,15 @@ export function listRandomHighlights(limit = 10) {
 // Dashboard "Feed" alternate mode: highlights that haven't come up in a
 // review yet at all (last_reviewed_at IS NULL) first, then whichever were
 // reviewed longest ago -- surfaces the ones review's own diversity-capped
-// batches keep passing over.
+// batches keep passing over. INNER JOIN (not LEFT) so a highlight taken out
+// of review via "Niet meer" also drops out of this list.
 export function listLeastRecentlySeen(limit = 10) {
     return db
         .prepare(
             `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
-             FROM highlights h JOIN books b ON b.id = h.book_id
-             LEFT JOIN reviews r ON r.highlight_id = h.id
+             FROM highlights h
+             JOIN books b ON b.id = h.book_id
+             JOIN reviews r ON r.highlight_id = h.id
              WHERE h.is_heading = 0
              ORDER BY r.last_reviewed_at IS NOT NULL, r.last_reviewed_at ASC
              LIMIT ?`
