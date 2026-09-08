@@ -91,15 +91,18 @@ export function reviewEnrolledCount() {
 // its own diversity logic, when /review is opened) -- purely a preview.
 export function getDueReviewPreview(sampleSize = 3) {
     const now = Date.now();
+    // Due-first, but falls back to the soonest-due highlights when nothing
+    // is due yet -- mirrors getReviewBatch()'s own fallback, so the
+    // dashboard card can still preview a "review more anyway" session once
+    // today's queue is caught up.
     const rows = db
         .prepare(
             `SELECT DISTINCT b.id AS book_id, b.cover_url, b.author
              FROM reviews r JOIN highlights h ON h.id = r.highlight_id JOIN books b ON b.id = h.book_id
-             WHERE r.due_at <= ?
-             ORDER BY r.due_at ASC
+             ORDER BY (r.due_at <= @now) DESC, r.due_at ASC
              LIMIT 20`
         )
-        .all(now);
+        .all({ now });
     const covers = rows.filter((r) => r.cover_url).slice(0, sampleSize).map((r) => r.cover_url);
     const authors = [...new Set(rows.map((r) => r.author).filter(Boolean))].slice(0, 2);
     return { covers, authors };
