@@ -19,6 +19,7 @@ import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSi
 import { VAPID_PUBLIC } from '../lib/push.js';
 import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, getDueReviewPreview } from '../db/reviews.js';
 import { renderShareImage } from '../lib/share-image.js';
+import { stripMarkdown } from '../lib/markdown.js';
 import { search } from '../db/search.js';
 
 const pkg = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'package.json'), 'utf8'));
@@ -142,7 +143,7 @@ router.get('/highlights/:id/share.png', async (req, res) => {
     if (!h) return res.status(404).end();
     const book = getBook(h.book_id);
     try {
-        const png = await renderShareImage({ text: h.text, title: book.title, author: book.author, coverUrl: book.cover_url });
+        const png = await renderShareImage({ text: stripMarkdown(h.text), title: book.title, author: book.author, coverUrl: book.cover_url });
         res.set('Content-Type', 'image/png');
         res.set('Content-Disposition', `inline; filename="highlight-${h.id}.png"`);
         res.send(png);
