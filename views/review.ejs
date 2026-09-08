@@ -20,13 +20,14 @@
   .review-card .book-line { font-size:0.85em; color:var(--text-dim); margin-bottom:1.2em; }
   .review-card .text { font-family: Georgia, 'Times New Roman', serif; font-size:calc(1.4rem * var(--text-scale)); line-height:1.5; color:var(--text); }
   .review-card .note { margin-top:1em; font-size:0.95em; color:var(--text-dim); font-style:italic; }
-  .review-card .card-icons { display:flex; gap:1.4em; margin-top:1.5em; padding-top:1.1em; border-top:1px solid var(--border); }
-  .review-card .card-icons button { background:none; border:none; color:var(--text-faint); font-size:1.15em; cursor:pointer; padding:0.2em; }
+  .review-card .card-icons { display:flex; gap:1em; margin-top:1.5em; padding-top:1.1em; border-top:1px solid var(--border); }
+  .review-card .card-icons button { display:flex; align-items:center; justify-content:center; background:none; border:none; color:var(--text-faint); cursor:pointer; padding:0.3em; line-height:0; }
   .review-card .card-icons button:hover { color:var(--text); }
+  .review-card .card-icons svg { width:1.15em; height:1.15em; display:block; }
 
-  .review-bottombar { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--border); padding:1em 1.2em 1.6em; display:flex; justify-content:center; gap:0.7em; flex-wrap:wrap; }
-  .pill-action { display:flex; align-items:center; gap:0.5em; padding:0.75em 1.3em; border-radius:999px; font-weight:600; font-size:0.9em; cursor:pointer; border:none; }
-  .pill-action .pill-icon { font-size:1.1em; }
+  .review-bottombar { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--border); padding:1em 1em 1.6em; display:flex; justify-content:center; gap:0.5em; flex-wrap:nowrap; }
+  .pill-action { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; gap:0.4em; padding:0.75em 0.5em; border-radius:999px; font-weight:600; font-size:0.85em; cursor:pointer; border:none; white-space:nowrap; }
+  .pill-action .pill-icon { font-size:1.1em; flex-shrink:0; }
   .pill-action.discard, .pill-action.freq { background:var(--surface-hover); color:var(--text); }
   .pill-action.keep { background:var(--accent); color:#fff; }
 
@@ -92,6 +93,12 @@
     }).replace(/</g, '\\u003c') %>;
     let i = 0;
 
+    // Flat, monochrome (currentColor) icons matching the app's theme --
+    // plain emoji here rendered misaligned/full-color and clashed with the
+    // rest of the UI.
+    const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
+    const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+
     function esc(s) {
       const d = document.createElement('div');
       d.textContent = s || '';
@@ -119,8 +126,8 @@
         '<div class="text">' + h.textHtml + '</div>' +
         (h.noteHtml ? '<div class="note">📝 ' + h.noteHtml + '</div>' : '') +
         '<div class="card-icons">' +
-        '<button title="' + esc(S.shareTitle) + '" id="btn-share">⤴</button>' +
-        '<button title="' + esc(S.bookTitle) + '" id="btn-book">📖</button>' +
+        '<button title="' + esc(S.shareTitle) + '" id="btn-share">' + ICON_SHARE + '</button>' +
+        '<button title="' + esc(S.bookTitle) + '" id="btn-book">' + ICON_BOOK + '</button>' +
         '</div>';
       card.style.transition = 'none';
       card.style.transform = '';
