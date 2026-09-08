@@ -122,6 +122,20 @@ export function countHighlights() {
     return db.prepare('SELECT COUNT(*) AS n FROM highlights').get().n;
 }
 
+// Dashboard "Feed": most recently added highlights (not heading markers),
+// newest first, for a quick glance at what just came in.
+export function listRecentHighlights(limit = 10) {
+    return db
+        .prepare(
+            `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
+             FROM highlights h JOIN books b ON b.id = h.book_id
+             WHERE h.is_heading = 0
+             ORDER BY h.created_at DESC
+             LIMIT ?`
+        )
+        .all(limit);
+}
+
 export function getHighlight(id) {
     return db.prepare('SELECT * FROM highlights WHERE id = ?').get(id);
 }
