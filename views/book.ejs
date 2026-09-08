@@ -46,7 +46,7 @@
       <% if (h.is_heading) { %>
         <div class="heading-divider"><%= '#'.repeat(h.heading_level) %> <%= h.text %></div>
       <% } else { %>
-      <div class="highlight <%= h.color ? 'color-' + h.color : '' %>">
+      <div class="highlight <%= h.color ? 'color-' + h.color : '' %>" id="highlight-<%= h.id %>">
         <label style="display:flex; gap:0.6em; align-items:flex-start;">
           <input type="checkbox" name="ids" value="<%= h.id %>" style="margin-top:0.35em">
           <div style="flex:1">

@@ -3,11 +3,11 @@
     <a class="brand" href="/"><img src="/icons/icon-192.png" alt="" style="width:1.3em; height:1.3em; border-radius:6px; vertical-align:-0.3em; margin-right:0.3em;">ReadRepeat</a>
     <% if (user) { %>
     <nav>
-      <a href="/" title="<%= t('nav.highlights') %>"><span aria-hidden="true">📚</span> <%= t('nav.highlights') %></a>
-      <a href="/review" title="<%= t('nav.review') %>"><span aria-hidden="true">🔁</span> <%= t('nav.review') %></a>
-      <a href="/account" title="<%= t('nav.account') %>"><span aria-hidden="true">👤</span> <%= t('nav.account') %></a>
+      <a href="/books" title="<%= t('nav.books') %>"><img src="/icons/nav-highlights.png" alt=""><%= t('nav.books') %></a>
+      <a href="/review" title="<%= t('nav.review') %>"><img src="/icons/nav-review.png" alt=""><%= t('nav.review') %></a>
+      <a href="/account" title="<%= t('nav.account') %>"><img src="/icons/nav-account.png" alt=""><%= t('nav.account') %></a>
       <form method="post" action="/logout" style="display:inline">
-        <button type="submit" class="secondary" title="<%= t('nav.logout') %>"><span aria-hidden="true">⏻</span></button>
+        <button type="submit" class="secondary" title="<%= t('nav.logout') %>"><img src="/icons/nav-logout.png" alt=""></button>
       </form>
     </nav>
     <% } %>
