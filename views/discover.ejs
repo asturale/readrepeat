@@ -52,21 +52,31 @@
   const feed = document.getElementById('feed');
   const loader = document.getElementById('loader');
 
+  // Counts a card only once you've actually scrolled PAST it, not the
+  // moment it appears -- track every card that was ever visible, then fire
+  // the review POST when it exits off the TOP of the viewport (scrolled
+  // down past it). Exiting off the bottom (scrolled back up away from it)
+  // does not count.
+  const wasVisible = new Set();
   const seenObserver = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       const id = Number(entry.target.dataset.id);
-      if (entry.isIntersecting && !seen.has(id)) {
-        seen.add(id);
-        // Fire-and-forget: viewing it in Discover reschedules it exactly
-        // like tapping "Volgende" in a normal review session.
-        fetch('/review/' + id, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'action=next',
-        }).catch(() => {});
+      if (entry.isIntersecting) {
+        wasVisible.add(id);
+        return;
       }
+      if (!wasVisible.has(id) || seen.has(id)) return;
+      if (entry.boundingClientRect.top >= 0) return; // exited off the bottom, not read past
+      seen.add(id);
+      // Fire-and-forget: scrolling past it in Discover reschedules it
+      // exactly like tapping "Volgende" in a normal review session.
+      fetch('/review/' + id, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=next',
+      }).catch(() => {});
     });
-  }, { threshold: 0.6 }) : null;
+  }, { threshold: [0, 0.6] }) : null;
 
   const loadMoreObserver = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting) loadMore();
