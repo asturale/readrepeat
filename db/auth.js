@@ -37,6 +37,21 @@ export function setUserLocale(userId, locale) {
     db.prepare('UPDATE users SET locale = ? WHERE id = ?').run(locale || null, userId);
 }
 
+export function markSessionCompleted(userId) {
+    db.prepare('UPDATE users SET last_session_completed_at = ? WHERE id = ?').run(Date.now(), userId);
+}
+
+// "Done for today" = the last completed /review session falls on the
+// caller's current local calendar day (server TZ -- see compose.yaml's
+// TZ=Europe/Amsterdam), NOT that the whole due queue is at zero -- with a
+// large backfilled backlog that could be thousands of highlights away.
+export function completedSessionToday(user, now = Date.now()) {
+    if (!user.last_session_completed_at) return false;
+    const a = new Date(user.last_session_completed_at);
+    const b = new Date(now);
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
 // API tokens: only the SHA-256 hash is stored, the plaintext token is shown
 // to the user exactly once (at creation) -- same principle as GitHub PATs.
 export function createApiToken(userId, label) {

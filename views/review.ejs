@@ -113,6 +113,11 @@
 
     function renderCard() {
       if (i >= batch.length) {
+        // Only reached after a non-empty batch was fully gone through --
+        // this IS "did a review session today" for the dashboard's
+        // "Klaar voor vandaag" card. Fire-and-forget: never block the
+        // done-screen on it.
+        fetch('/review/session/complete', { method: 'POST' }).catch(() => {});
         document.querySelector('main').innerHTML =
           '<div class="review-empty"><h2>' + esc(S.doneHeading) + '</h2><p style="color:var(--text-dim)">' + esc(S.doneBody) + '</p><p><a href="/">&larr; ' + esc(S.back) + '</a></p></div>';
         document.querySelector('.review-bottombar')?.remove();

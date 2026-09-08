@@ -14,11 +14,11 @@ import {
     listRecentHighlights,
     listRandomHighlights,
 } from '../db/highlights.js';
-import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById } from '../db/auth.js';
+import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday } from '../db/auth.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
 import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
 import { VAPID_PUBLIC } from '../lib/push.js';
-import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, getDueReviewPreview } from '../db/reviews.js';
+import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, previewFromBatch, getHighlightsByIds } from '../db/reviews.js';
 import { renderShareImage } from '../lib/share-image.js';
 import { stripMarkdown } from '../lib/markdown.js';
 import { search } from '../db/search.js';
@@ -34,19 +34,25 @@ router.get('/about', (req, res) => {
 
 router.get('/', (req, res) => {
     const bookCount = listBooksWithCounts().length;
-    const reviewDue = reviewQueueSize();
     const reviewEnrolled = reviewEnrolledCount();
-    const batchSize = findUserById(req.session.userId).review_batch_size;
+    const user = findUserById(req.session.userId);
     const feedMode = req.query.feed === 'random' ? 'random' : 'recent';
+    // Fetch the batch ONCE here and carry its exact highlight ids into the
+    // "Review" button's link (see dashboard.ejs) -- previously the preview
+    // covers/authors came from a separate, differently-ordered query than
+    // getReviewBatch()'s own shuffled diversity pick, so they almost never
+    // matched what actually opened in /review.
+    const previewBatch = reviewEnrolled > 0 ? getReviewBatch(user.review_batch_size) : [];
     res.render('dashboard', {
         bookCount,
         totalHighlights: countHighlights(),
-        reviewSessionCount: Math.min(reviewDue, batchSize),
-        // Due first; when caught up but the queue isn't empty, still show a
-        // card so "review more anyway" stays reachable (getReviewBatch()
-        // already falls back to not-yet-due highlights when nothing is due).
-        reviewPreview: reviewDue > 0 || reviewEnrolled > 0 ? getDueReviewPreview() : null,
-        reviewDone: reviewDue === 0 && reviewEnrolled > 0,
+        reviewSessionCount: previewBatch.length,
+        reviewBatchIds: previewBatch.map((h) => h.id).join(','),
+        reviewPreview: previewBatch.length > 0 ? previewFromBatch(previewBatch) : null,
+        // "Done for today" = completed a review session today, NOT that the
+        // (potentially huge, backfilled) due queue has hit zero -- see
+        // completedSessionToday()'s own comment.
+        reviewDone: completedSessionToday(user),
         feedMode,
         recentHighlights: feedMode === 'random' ? listRandomHighlights(8) : listRecentHighlights(8),
     });
@@ -132,13 +138,22 @@ router.post('/books/:id/highlights/:hid/review-toggle', (req, res) => {
 
 router.get('/review', (req, res) => {
     const count = req.query.count || findUserById(req.session.userId).review_batch_size;
-    const batch = getReviewBatch(count);
+    // ?ids= (set by the dashboard's "Review" link) opens the EXACT batch it
+    // already previewed, instead of getReviewBatch() shuffling a fresh
+    // (and likely different) one.
+    const ids = req.query.ids ? req.query.ids.split(',').map(Number).filter(Boolean) : [];
+    const batch = ids.length > 0 ? getHighlightsByIds(ids) : getReviewBatch(count);
     res.render('review', { batch, count, dueCount: reviewQueueSize(), enrolledCount: reviewEnrolledCount() });
 });
 
 router.post('/review/:hid', (req, res) => {
     recordReview(req.params.hid, req.body.action);
     res.redirect(`/review?count=${encodeURIComponent(req.body.count || 5)}`);
+});
+
+router.post('/review/session/complete', (req, res) => {
+    markSessionCompleted(req.session.userId);
+    res.json({ ok: true });
 });
 
 router.get('/highlights/:id/share.png', async (req, res) => {
