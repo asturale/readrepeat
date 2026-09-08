@@ -53,7 +53,7 @@
   </div>
   <div class="card" style="padding:0 1.5em;">
     <% recentHighlights.forEach(function(h) { %>
-    <a href="/review?ids=<%= h.id %>" class="feed-item">
+    <a href="/review?ids=<%= h.id %>&from=feed" class="feed-item">
       <% if (h.cover_url) { %>
         <img class="feed-cover" src="<%= h.cover_url %>" alt="">
       <% } else { %>

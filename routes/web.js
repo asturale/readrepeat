@@ -160,7 +160,11 @@ router.get('/review', (req, res) => {
     // (and likely different) one.
     const ids = req.query.ids ? req.query.ids.split(',').map(Number).filter(Boolean) : [];
     const batch = ids.length > 0 ? getHighlightsByIds(ids) : getReviewBatch(count);
-    res.render('review', { batch, count, dueCount: reviewQueueSize(), enrolledCount: reviewEnrolledCount() });
+    // A feed click opens a single highlight as a card (explicit ?from=feed,
+    // set by the feed links) -- that's browsing, not a review session: no
+    // "done" screen, and it must NOT count toward the daily streak.
+    const fromFeed = req.query.from === 'feed';
+    res.render('review', { batch, count, dueCount: reviewQueueSize(), enrolledCount: reviewEnrolledCount(), fromFeed });
 });
 
 router.post('/review/:hid', (req, res) => {
