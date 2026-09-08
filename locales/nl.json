@@ -23,6 +23,8 @@
 
   "book.back": "Alle boeken",
   "book.review_frequency": "Review-frequentie",
+  "book.delete_book": "Boek verwijderen",
+  "book.delete_book_confirm": "Dit hele boek en al zijn highlights permanent verwijderen? Dit kan niet ongedaan worden gemaakt.",
   "book.add_manual": "Highlight handmatig toevoegen",
   "book.text_placeholder": "Tekst",
   "book.note_placeholder": "Notitie (optioneel)",

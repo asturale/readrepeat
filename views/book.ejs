@@ -20,6 +20,9 @@
           </select>
         </label>
       </form>
+      <form method="post" action="/books/<%= book.id %>/delete" style="margin-top:0.8em" onsubmit="return confirm('<%= t('book.delete_book_confirm') %>')">
+        <button type="submit" class="danger"><%= t('book.delete_book') %></button>
+      </form>
     </div>
   </div>
 
