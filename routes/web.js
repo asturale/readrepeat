@@ -33,12 +33,17 @@ router.get('/about', (req, res) => {
 router.get('/', (req, res) => {
     const bookCount = listBooksWithCounts().length;
     const reviewDue = reviewQueueSize();
+    const reviewEnrolled = reviewEnrolledCount();
     const batchSize = findUserById(req.session.userId).review_batch_size;
     res.render('dashboard', {
         bookCount,
         totalHighlights: countHighlights(),
         reviewSessionCount: Math.min(reviewDue, batchSize),
-        reviewPreview: reviewDue > 0 ? getDueReviewPreview() : null,
+        // Due first; when caught up but the queue isn't empty, still show a
+        // card so "review more anyway" stays reachable (getReviewBatch()
+        // already falls back to not-yet-due highlights when nothing is due).
+        reviewPreview: reviewDue > 0 || reviewEnrolled > 0 ? getDueReviewPreview() : null,
+        reviewDone: reviewDue === 0 && reviewEnrolled > 0,
         recentHighlights: listRecentHighlights(8),
     });
 });
