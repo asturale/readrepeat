@@ -116,6 +116,11 @@ ensureColumn('users', 'reminder_hour', 'reminder_hour INTEGER NOT NULL DEFAULT 9
 // book page/search) -- rem-based so it stays relative to the browser's own
 // default font size. See review.ejs's --text-scale usage.
 ensureColumn('users', 'text_scale', 'text_scale REAL NOT NULL DEFAULT 0.85');
+// Set when a /review batch is fully completed (all its cards swiped/
+// actioned through) -- "done for today" on the dashboard means this falls
+// on today's date, NOT that the whole (potentially huge, backfilled) due
+// queue has hit zero.
+ensureColumn('users', 'last_session_completed_at', 'last_session_completed_at INTEGER');
 
 export function userCount() {
     return db.prepare('SELECT COUNT(*) AS n FROM users').get().n;

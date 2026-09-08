@@ -87,25 +87,38 @@ export function reviewEnrolledCount() {
 
 // Dashboard "Daily Review" hero card: a few cover images to fan out + a
 // handful of distinct author names for the "X highlights from A, B and
-// more" subtitle. Not the actual review batch (that's chosen fresh, with
-// its own diversity logic, when /review is opened) -- purely a preview.
-export function getDueReviewPreview(sampleSize = 3) {
-    const now = Date.now();
-    // Due-first, but falls back to the soonest-due highlights when nothing
-    // is due yet -- mirrors getReviewBatch()'s own fallback, so the
-    // dashboard card can still preview a "review more anyway" session once
-    // today's queue is caught up.
+// more" subtitle. Derived from the ACTUAL batch the dashboard just fetched
+// (its ids get carried into the "Review" button's link, see routes/web.js)
+// -- previously this ran its own separate, non-shuffled query and almost
+// never matched what getReviewBatch()'s own diversity logic picked, so the
+// preview showed different covers/authors than the session that followed it.
+export function previewFromBatch(batch, sampleSize = 3) {
+    const byBook = new Map();
+    for (const h of batch) {
+        if (!byBook.has(h.book_id)) byBook.set(h.book_id, { cover_url: h.cover_url, author: h.book_author });
+    }
+    const entries = [...byBook.values()];
+    const covers = entries.filter((e) => e.cover_url).slice(0, sampleSize).map((e) => e.cover_url);
+    const authors = [...new Set(entries.map((e) => e.author).filter(Boolean))].slice(0, 2);
+    return { covers, authors };
+}
+
+// Re-fetch a specific, already-chosen set of highlights (by id) with the
+// same book-joined shape getReviewBatch() returns -- used so /review can
+// open the EXACT batch the dashboard previewed, instead of shuffling a
+// fresh (and likely different) one.
+export function getHighlightsByIds(ids) {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => '?').join(',');
     const rows = db
         .prepare(
-            `SELECT DISTINCT b.id AS book_id, b.cover_url, b.author
-             FROM reviews r JOIN highlights h ON h.id = r.highlight_id JOIN books b ON b.id = h.book_id
-             ORDER BY (r.due_at <= @now) DESC, r.due_at ASC
-             LIMIT 20`
+            `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
+             FROM highlights h JOIN books b ON b.id = h.book_id
+             WHERE h.id IN (${placeholders})`
         )
-        .all({ now });
-    const covers = rows.filter((r) => r.cover_url).slice(0, sampleSize).map((r) => r.cover_url);
-    const authors = [...new Set(rows.map((r) => r.author).filter(Boolean))].slice(0, 2);
-    return { covers, authors };
+        .all(...ids);
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    return ids.map((id) => byId.get(id)).filter(Boolean);
 }
 
 // 4-button model (Koen's own design, not classic Anki SM-2):
