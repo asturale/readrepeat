@@ -20,9 +20,9 @@ import { logSessionDay, getStreak, getMonthCalendar } from '../db/streak.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
 import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
 import { VAPID_PUBLIC } from '../lib/push.js';
-import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, previewFromBatch, getHighlightsByIds } from '../db/reviews.js';
+import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, previewFromBatch, getHighlightsByIds, getDiscoverBatch } from '../db/reviews.js';
 import { renderShareImage } from '../lib/share-image.js';
-import { stripMarkdown } from '../lib/markdown.js';
+import { stripMarkdown, renderInlineMarkdown } from '../lib/markdown.js';
 import { search } from '../db/search.js';
 
 const pkg = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'package.json'), 'utf8'));
@@ -176,6 +176,28 @@ router.post('/review/session/complete', (req, res) => {
     markSessionCompleted(req.session.userId);
     logSessionDay(req.session.userId);
     res.json({ ok: true });
+});
+
+function toDiscoverCards(batch) {
+    return batch.map((h) => ({
+        id: h.id,
+        book_id: h.book_id,
+        textHtml: renderInlineMarkdown(h.text),
+        noteHtml: h.note ? renderInlineMarkdown(h.note) : null,
+        bookTitleHtml: renderInlineMarkdown(h.book_title),
+        bookAuthorHtml: h.book_author ? renderInlineMarkdown(h.book_author) : null,
+    }));
+}
+
+router.get('/discover', (req, res) => {
+    const batch = getDiscoverBatch([], 8);
+    res.render('discover', { initialCards: toDiscoverCards(batch) });
+});
+
+router.get('/api/discover', (req, res) => {
+    const exclude = req.query.exclude ? req.query.exclude.split(',').map(Number).filter(Boolean) : [];
+    const batch = getDiscoverBatch(exclude, 8);
+    res.json({ cards: toDiscoverCards(batch) });
 });
 
 router.get('/highlights/:id/share.png', async (req, res) => {

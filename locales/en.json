@@ -1,6 +1,7 @@
 {
   "nav.search_placeholder": "Search…",
   "nav.books": "Books",
+  "nav.discover": "Discover",
   "nav.review": "Review",
   "nav.account": "Account",
   "nav.logout": "Log out",
@@ -40,6 +41,11 @@
   "books.merge_confirm": "Merge the selected books into one (including their highlights, duplicate highlights will be removed)? This cannot be undone.",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
+
+  "discover.title": "Discover",
+  "discover.empty_heading": "Nothing to discover yet",
+  "discover.empty_body": "Add some highlights to review first.",
+  "discover.loading": "Loading more…",
 
   "book.back": "All books",
   "book.review_frequency": "Review frequency",

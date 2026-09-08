@@ -1,0 +1,120 @@
+<% var title = t('discover.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<style>
+  .discover-feed { max-width:640px; margin:0 auto; padding:1em 1.2em 4em; display:flex; flex-direction:column; gap:1.2em; }
+  .discover-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:1.8em 1.6em; }
+  .discover-card .book-line { font-size:0.85em; color:var(--text-dim); margin-bottom:1.2em; }
+  .discover-card .text { font-family: Georgia, 'Times New Roman', serif; font-size:calc(1.3rem * var(--text-scale)); line-height:1.5; color:var(--text); }
+  .discover-card .note { margin-top:1em; font-size:0.95em; color:var(--text-dim); font-style:italic; }
+  .discover-card .card-icons { display:flex; gap:1em; margin-top:1.5em; padding-top:1.1em; border-top:1px solid var(--border); }
+  .discover-card .card-icons button { display:flex; align-items:center; justify-content:center; background:none; border:none; color:var(--text-faint); cursor:pointer; padding:0.3em; line-height:0; }
+  .discover-card .card-icons button:hover { color:var(--text); }
+  .discover-card .card-icons svg { width:1.15em; height:1.15em; display:block; }
+  .discover-loader { text-align:center; color:var(--text-faint); padding:1.5em; font-size:0.9em; }
+  .discover-empty { max-width:480px; margin:auto; text-align:center; padding:2em 1.2em; }
+</style>
+</head>
+<body>
+<main style="padding:0;">
+  <% if (initialCards.length === 0) { %>
+  <div class="discover-empty">
+    <h2><%= t('discover.empty_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('discover.empty_body') %></p>
+  </div>
+  <% } else { %>
+  <div class="discover-feed" id="feed"></div>
+  <div class="discover-loader" id="loader"><%= t('discover.loading') %></div>
+  <% } %>
+</main>
+
+<script>
+  // Same escape-the-closing-script-tag guard as review.ejs's inline batch
+  // (see that file's comment for why -- never spell the raw sequence out
+  // here either).
+  const S = <%- JSON.stringify({ shareTitle: t('review.share_title'), bookTitle: t('review.book_title') }).replace(/</g, '\\u003c') %>;
+  let cards = <%- JSON.stringify(initialCards).replace(/</g, '\\u003c') %>;
+  const seen = new Set();
+  let loading = false;
+  let exhausted = cards.length === 0;
+
+  const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
+  const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  const feed = document.getElementById('feed');
+  const loader = document.getElementById('loader');
+
+  const seenObserver = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const id = Number(entry.target.dataset.id);
+      if (entry.isIntersecting && !seen.has(id)) {
+        seen.add(id);
+        // Fire-and-forget: viewing it in Discover reschedules it exactly
+        // like tapping "Volgende" in a normal review session.
+        fetch('/review/' + id, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'action=next',
+        }).catch(() => {});
+      }
+    });
+  }, { threshold: 0.6 }) : null;
+
+  const loadMoreObserver = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) loadMore();
+  }, { rootMargin: '400px' }) : null;
+
+  function renderCard(c) {
+    const el = document.createElement('div');
+    el.className = 'discover-card';
+    el.dataset.id = c.id;
+    el.innerHTML =
+      '<div class="book-line">' + c.bookTitleHtml + (c.bookAuthorHtml ? ' — ' + c.bookAuthorHtml : '') + '</div>' +
+      '<div class="text">' + c.textHtml + '</div>' +
+      (c.noteHtml ? '<div class="note">📝 ' + c.noteHtml + '</div>' : '') +
+      '<div class="card-icons">' +
+      '<button title="' + esc(S.shareTitle) + '" data-act="share">' + ICON_SHARE + '</button>' +
+      '<button title="' + esc(S.bookTitle) + '" data-act="book">' + ICON_BOOK + '</button>' +
+      '</div>';
+    el.querySelector('[data-act=share]').onclick = () => location.href = '/highlights/' + c.id + '/share';
+    el.querySelector('[data-act=book]').onclick = () => location.href = '/books/' + c.book_id + '#highlight-' + c.id;
+    feed.appendChild(el);
+    if (seenObserver) seenObserver.observe(el);
+  }
+
+  async function loadMore() {
+    if (loading || exhausted) return;
+    loading = true;
+    loader.style.display = 'block';
+    try {
+      const ids = cards.map((c) => c.id).join(',');
+      const res = await fetch('/api/discover?exclude=' + encodeURIComponent(ids));
+      const data = await res.json();
+      if (data.cards.length === 0) {
+        exhausted = true;
+        loader.style.display = 'none';
+        return;
+      }
+      cards = cards.concat(data.cards);
+      data.cards.forEach(renderCard);
+    } catch (e) {
+      // Silently give up for this scroll -- the loader sentinel stays in
+      // view so the next scroll tick just retries.
+    } finally {
+      loading = false;
+    }
+  }
+
+  if (cards.length > 0) {
+    cards.forEach(renderCard);
+    if (loadMoreObserver) loadMoreObserver.observe(loader);
+  }
+</script>
+</body>
+</html>

@@ -121,6 +121,26 @@ export function getHighlightsByIds(ids) {
     return ids.map((id) => byId.get(id)).filter(Boolean);
 }
 
+// "Instagram mode" (/discover): infinite scroll of random highlights from
+// the review pool, excluding whatever the client has already loaded this
+// session (passed back on each page request) so scrolling doesn't just
+// repeat the same handful over and over on a small library.
+export function getDiscoverBatch(excludeIds = [], limit = 8) {
+    const n = Math.max(1, Math.min(50, Number(limit) || 8));
+    const excludeClause = excludeIds.length > 0 ? `AND h.id NOT IN (${excludeIds.map(() => '?').join(',')})` : '';
+    return db
+        .prepare(
+            `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
+             FROM reviews r
+             JOIN highlights h ON h.id = r.highlight_id
+             JOIN books b ON b.id = h.book_id
+             WHERE h.is_heading = 0 ${excludeClause}
+             ORDER BY RANDOM()
+             LIMIT ?`
+        )
+        .all(...excludeIds, n);
+}
+
 // 4-button model (Koen's own design, not classic Anki SM-2):
 // - 'next'  : keep the current frequency, just reschedule for its normal next turn
 // - 'more'  : show it more often (halves the interval)
