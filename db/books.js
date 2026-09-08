@@ -43,6 +43,18 @@ export function findOrCreateBook({ title, author, cover_url }) {
     return db.prepare('SELECT * FROM books WHERE id = ?').get(info.lastInsertRowid);
 }
 
+// Manual metadata edit (title/author/cover) -- recomputes normalized_key so
+// dedup stays internally consistent with the new values. A future re-import
+// still using the OLD title/author from its source could land on a fresh
+// duplicate book -- same inherent tradeoff as the original dedup design,
+// just now user-triggered instead of source-format-triggered.
+export function updateBookMetadata(bookId, { title, author, cover_url }) {
+    const key = normalizeKey(title, author);
+    db.prepare(
+        `UPDATE books SET title = ?, author = ?, cover_url = ?, normalized_key = ?, updated_at = ? WHERE id = ?`
+    ).run(title, author || null, cover_url || null, key, Date.now(), bookId);
+}
+
 export function setBookCover(bookId, { cover_url, hardcover_id, author }) {
     db.prepare(
         `UPDATE books SET cover_url = COALESCE(?, cover_url), hardcover_id = COALESCE(?, hardcover_id),
