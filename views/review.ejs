@@ -8,7 +8,7 @@
   .review-dots span { width:7px; height:7px; border-radius:50%; background:var(--border); display:inline-block; }
   .review-dots span.done { background:var(--text-faint); }
   .review-dots span.current { background:var(--text); }
-  .review-card { max-width:640px; margin:0 auto; padding:2em 1.5em; min-height:50vh; display:flex; flex-direction:column; justify-content:center; }
+  .review-card { max-width:640px; margin:0 auto; padding:2em 1.5em; min-height:50vh; display:flex; flex-direction:column; justify-content:center; touch-action:pan-y; }
   .review-card .book-line { font-size:0.85em; color:var(--text-dim); margin-bottom:1.2em; }
   .review-card .text { font-family: Georgia, 'Times New Roman', serif; font-size:calc(1.7rem * var(--text-scale)); line-height:1.45; color:var(--text); }
   .review-card .note { margin-top:1em; font-size:0.95em; color:var(--text-dim); font-style:italic; }
@@ -107,13 +107,53 @@
         return;
       }
       const h = batch[i];
-      document.getElementById('card').innerHTML =
+      const card = document.getElementById('card');
+      card.innerHTML =
         '<div class="book-line">' + h.bookTitleHtml + (h.bookAuthorHtml ? ' — ' + h.bookAuthorHtml : '') + '</div>' +
         '<div class="text">' + h.textHtml + '</div>' +
         (h.noteHtml ? '<div class="note">📝 ' + h.noteHtml + '</div>' : '');
+      card.style.transition = 'none';
+      card.style.transform = '';
+      card.style.opacity = '';
       document.getElementById('btn-book').onclick = () => location.href = '/books/' + h.book_id;
       document.getElementById('btn-share').onclick = () => location.href = '/highlights/' + h.id + '/share';
       renderDots();
+    }
+
+    // Swipe (either direction) on the card advances to the next highlight,
+    // same as tapping "Volgende" -- listeners attach once since #card is
+    // reused across renders (only its innerHTML changes).
+    function attachSwipe() {
+      const card = document.getElementById('card');
+      if (!card) return;
+      let startX = null;
+      let currentX = null;
+      card.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        currentX = startX;
+        card.style.transition = 'none';
+      }, { passive: true });
+      card.addEventListener('touchmove', (e) => {
+        if (startX === null) return;
+        currentX = e.touches[0].clientX;
+        const dx = currentX - startX;
+        card.style.transform = `translateX(${dx}px) rotate(${dx / 20}deg)`;
+        card.style.opacity = String(Math.max(1 - Math.abs(dx) / 300, 0.4));
+      }, { passive: true });
+      card.addEventListener('touchend', () => {
+        if (startX === null) return;
+        const dx = currentX - startX;
+        card.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+        if (Math.abs(dx) > 80) {
+          card.style.transform = `translateX(${dx > 0 ? 1 : -1}00%) rotate(${dx > 0 ? 15 : -15}deg)`;
+          card.style.opacity = '0';
+          setTimeout(() => act('next'), 150);
+        } else {
+          card.style.transform = '';
+          card.style.opacity = '';
+        }
+        startX = null;
+      });
     }
 
     async function act(action) {
@@ -129,6 +169,7 @@
 
     if (batch.length > 0) {
       renderCard();
+      attachSwipe();
       document.getElementById('btn-keep').onclick = () => act('next');
       document.getElementById('btn-discard').onclick = () => {
         if (confirm(S.discardConfirm)) act('stop');
