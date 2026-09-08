@@ -144,6 +144,21 @@ export function listRecentHighlights(limit = 10) {
         .all(limit);
 }
 
+// Dashboard "Feed" alternate mode: a random sample instead of newest-first,
+// for rediscovering older highlights rather than only ever seeing the tail
+// end of the latest import.
+export function listRandomHighlights(limit = 10) {
+    return db
+        .prepare(
+            `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
+             FROM highlights h JOIN books b ON b.id = h.book_id
+             WHERE h.is_heading = 0
+             ORDER BY RANDOM()
+             LIMIT ?`
+        )
+        .all(limit);
+}
+
 export function getHighlight(id) {
     return db.prepare('SELECT * FROM highlights WHERE id = ?').get(id);
 }
