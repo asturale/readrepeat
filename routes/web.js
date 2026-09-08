@@ -9,12 +9,13 @@ import {
     updateHighlightText,
     deleteHighlight,
     mergeHighlights,
+    listRecentHighlights,
 } from '../db/highlights.js';
 import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById } from '../db/auth.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
 import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
 import { VAPID_PUBLIC } from '../lib/push.js';
-import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount } from '../db/reviews.js';
+import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, getDueReviewPreview } from '../db/reviews.js';
 import { renderShareImage } from '../lib/share-image.js';
 import { search } from '../db/search.js';
 
@@ -23,10 +24,13 @@ router.use(requireLogin);
 
 router.get('/', (req, res) => {
     const books = listBooksWithCounts();
+    const reviewDue = reviewQueueSize();
     res.render('dashboard', {
         books,
         totalHighlights: countHighlights(),
-        reviewDue: reviewQueueSize(),
+        reviewDue,
+        reviewPreview: reviewDue > 0 ? getDueReviewPreview() : null,
+        recentHighlights: listRecentHighlights(8),
         reviewEnrolled: reviewEnrolledCount(),
     });
 });

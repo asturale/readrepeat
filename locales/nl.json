@@ -13,6 +13,11 @@
   "dashboard.empty_title": "Nog geen highlights",
   "dashboard.empty_body": "Importeer highlights via je",
   "dashboard.empty_link": "API-token",
+  "dashboard.daily_review": "Daily Review",
+  "dashboard.review_subtitle": "{count} highlights van {authors}",
+  "dashboard.and_more": "en meer",
+  "dashboard.review_button": "Review",
+  "dashboard.feed_heading": "Recent toegevoegd",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
 

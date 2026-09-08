@@ -13,6 +13,11 @@
   "dashboard.empty_title": "No highlights yet",
   "dashboard.empty_body": "Import highlights using your",
   "dashboard.empty_link": "API token",
+  "dashboard.daily_review": "Daily Review",
+  "dashboard.review_subtitle": "{count} highlights from {authors}",
+  "dashboard.and_more": "and more",
+  "dashboard.review_button": "Review",
+  "dashboard.feed_heading": "Recently added",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
 
