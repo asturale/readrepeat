@@ -12,21 +12,22 @@
   .review-card .book-line { font-size:0.85em; color:var(--text-dim); margin-bottom:1.2em; }
   .review-card .text { font-family: Georgia, 'Times New Roman', serif; font-size:calc(1.7rem * var(--text-scale)); line-height:1.45; color:var(--text); }
   .review-card .note { margin-top:1em; font-size:0.95em; color:var(--text-dim); font-style:italic; }
-  .review-icons { max-width:640px; margin:1em auto 0; padding:0 1.5em; display:flex; justify-content:center; gap:1.8em; }
-  .review-icons button { background:none; border:none; color:var(--text-faint); font-size:1.3em; cursor:pointer; }
+  .review-icons { display:flex; justify-content:center; gap:1.6em; padding-bottom:0.6em; }
+  .review-icons button { background:none; border:none; color:var(--text-faint); font-size:1em; cursor:pointer; padding:0.3em; }
   .review-icons button:hover { color:var(--text); }
-  .review-bottombar { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--border); padding:1em 1.5em 1.6em; display:flex; justify-content:space-around; align-items:center; }
+  .review-bottombar { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--border); padding:0.6em 1.5em 1.6em; display:flex; flex-direction:column; align-items:center; }
+  .review-bottombar .actions-row { display:flex; justify-content:space-around; align-items:center; width:100%; }
   .review-bottombar .action { display:flex; flex-direction:column; align-items:center; gap:0.4em; background:none; border:none; color:var(--text); cursor:pointer; font-size:0.85em; }
   .review-bottombar .pill { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4em; }
   .review-bottombar .discard .pill { background:var(--surface-hover); }
   .review-bottombar .freq .pill { background:var(--surface-hover); }
   .review-bottombar .keep .pill { background:var(--accent); }
-  .freq-menu { position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:var(--surface-hover); border-radius:12px; padding:0.5em; display:none; flex-direction:column; gap:0.3em; box-shadow:0 10px 30px rgba(0,0,0,0.4); border:1px solid var(--border); }
+  .freq-menu { position:fixed; bottom:150px; left:50%; transform:translateX(-50%); background:var(--surface-hover); border-radius:12px; padding:0.5em; display:none; flex-direction:column; gap:0.3em; box-shadow:0 10px 30px rgba(0,0,0,0.4); border:1px solid var(--border); }
   .freq-menu.open { display:flex; }
   .freq-menu button { background:none; border:none; color:var(--text); padding:0.6em 1.2em; text-align:left; border-radius:8px; cursor:pointer; }
   .freq-menu button:hover { background:var(--bg); }
   .review-empty { max-width:480px; margin:4em auto; text-align:center; }
-  main { padding-bottom:6em; }
+  main { padding-bottom:8em; }
 </style>
 </head>
 <body>
@@ -45,10 +46,6 @@
     </div>
     <% } else { %>
     <div class="review-card" id="card"></div>
-    <div class="review-icons">
-      <button title="<%= t('review.share_title') %>" id="btn-share">⤴</button>
-      <button title="<%= t('review.book_title') %>" id="btn-book">📖</button>
-    </div>
     <% } %>
   </main>
 
@@ -58,9 +55,15 @@
     <button data-action="less"><%= t('review.less') %></button>
   </div>
   <div class="review-bottombar">
-    <button class="action discard" id="btn-discard"><span class="pill">✕</span><%= t('review.discard') %></button>
-    <button class="action freq" id="btn-freq"><span class="pill">↕</span><%= t('review.frequency') %></button>
-    <button class="action keep" id="btn-keep"><span class="pill">✓</span><%= t('review.next') %></button>
+    <div class="review-icons">
+      <button title="<%= t('review.share_title') %>" id="btn-share">⤴</button>
+      <button title="<%= t('review.book_title') %>" id="btn-book">📖</button>
+    </div>
+    <div class="actions-row">
+      <button class="action discard" id="btn-discard"><span class="pill">✕</span><%= t('review.discard') %></button>
+      <button class="action freq" id="btn-freq"><span class="pill">↕</span><%= t('review.frequency') %></button>
+      <button class="action keep" id="btn-keep"><span class="pill">✓</span><%= t('review.next') %></button>
+    </div>
   </div>
   <% } %>
 
