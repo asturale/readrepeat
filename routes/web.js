@@ -13,8 +13,10 @@ import {
     mergeHighlights,
     listRecentHighlights,
     listRandomHighlights,
+    listLeastRecentlySeen,
 } from '../db/highlights.js';
-import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday } from '../db/auth.js';
+import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode } from '../db/auth.js';
+import { logSessionDay, getStreak, getMonthCalendar } from '../db/streak.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
 import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
 import { VAPID_PUBLIC } from '../lib/push.js';
@@ -36,7 +38,11 @@ router.get('/', (req, res) => {
     const bookCount = listBooksWithCounts().length;
     const reviewEnrolled = reviewEnrolledCount();
     const user = findUserById(req.session.userId);
-    const feedMode = req.query.feed === 'random' ? 'random' : 'recent';
+    // An explicit ?feed= click both applies for this view AND becomes the
+    // remembered default for next time; otherwise fall back to whatever
+    // was last saved.
+    const feedMode = ['recent', 'random', 'oldest'].includes(req.query.feed) ? req.query.feed : user.feed_mode;
+    if (req.query.feed && req.query.feed !== user.feed_mode) setFeedMode(user.id, feedMode);
     // Fetch the batch ONCE here and carry its exact highlight ids into the
     // "Review" button's link (see dashboard.ejs) -- previously the preview
     // covers/authors came from a separate, differently-ordered query than
@@ -53,8 +59,10 @@ router.get('/', (req, res) => {
         // (potentially huge, backfilled) due queue has hit zero -- see
         // completedSessionToday()'s own comment.
         reviewDone: completedSessionToday(user),
+        streak: getStreak(user.id),
         feedMode,
-        recentHighlights: feedMode === 'random' ? listRandomHighlights(8) : listRecentHighlights(8),
+        recentHighlights:
+            feedMode === 'random' ? listRandomHighlights(8) : feedMode === 'oldest' ? listLeastRecentlySeen(8) : listRecentHighlights(8),
     });
 });
 
@@ -154,6 +162,7 @@ router.post('/review/:hid', (req, res) => {
 
 router.post('/review/session/complete', (req, res) => {
     markSessionCompleted(req.session.userId);
+    logSessionDay(req.session.userId);
     res.json({ ok: true });
 });
 
@@ -184,13 +193,25 @@ router.get('/search', (req, res) => {
     res.render('search', { q, results });
 });
 
+function accountLocals(req, res, newToken) {
+    const now = new Date();
+    return {
+        tokens: listApiTokens(req.session.userId),
+        newToken,
+        storedLocale: findUserById(req.session.userId).locale,
+        streak: getStreak(req.session.userId),
+        calendarMonth: getMonthCalendar(req.session.userId, now.getFullYear(), now.getMonth()),
+        calendarLabel: now.toLocaleDateString(res.locals.dateLocale, { month: 'long', year: 'numeric' }),
+    };
+}
+
 router.get('/account', (req, res) => {
-    res.render('account', { tokens: listApiTokens(req.session.userId), newToken: null, storedLocale: findUserById(req.session.userId).locale });
+    res.render('account', accountLocals(req, res, null));
 });
 
 router.post('/account/tokens', (req, res) => {
     const token = createApiToken(req.session.userId, req.body.label || null);
-    res.render('account', { tokens: listApiTokens(req.session.userId), newToken: token, storedLocale: findUserById(req.session.userId).locale });
+    res.render('account', accountLocals(req, res, token));
 });
 
 router.post('/account/tokens/:id/revoke', (req, res) => {

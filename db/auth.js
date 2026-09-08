@@ -37,6 +37,11 @@ export function setUserLocale(userId, locale) {
     db.prepare('UPDATE users SET locale = ? WHERE id = ?').run(locale || null, userId);
 }
 
+export function setFeedMode(userId, mode) {
+    const allowed = ['recent', 'random', 'oldest'];
+    db.prepare('UPDATE users SET feed_mode = ? WHERE id = ?').run(allowed.includes(mode) ? mode : 'recent', userId);
+}
+
 export function markSessionCompleted(userId) {
     db.prepare('UPDATE users SET last_session_completed_at = ? WHERE id = ?').run(Date.now(), userId);
 }
