@@ -159,6 +159,23 @@ export function listRandomHighlights(limit = 10) {
         .all(limit);
 }
 
+// Dashboard "Feed" alternate mode: highlights that haven't come up in a
+// review yet at all (last_reviewed_at IS NULL) first, then whichever were
+// reviewed longest ago -- surfaces the ones review's own diversity-capped
+// batches keep passing over.
+export function listLeastRecentlySeen(limit = 10) {
+    return db
+        .prepare(
+            `SELECT h.*, b.title AS book_title, b.author AS book_author, b.cover_url
+             FROM highlights h JOIN books b ON b.id = h.book_id
+             LEFT JOIN reviews r ON r.highlight_id = h.id
+             WHERE h.is_heading = 0
+             ORDER BY r.last_reviewed_at IS NOT NULL, r.last_reviewed_at ASC
+             LIMIT ?`
+        )
+        .all(limit);
+}
+
 export function getHighlight(id) {
     return db.prepare('SELECT * FROM highlights WHERE id = ?').get(id);
 }
