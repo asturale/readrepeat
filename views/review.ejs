@@ -127,22 +127,39 @@
       const card = document.getElementById('card');
       if (!card) return;
       let startX = null;
+      let startY = null;
       let currentX = null;
+      // Undecided until the finger has moved enough to tell a horizontal
+      // swipe apart from a vertical scroll -- prevents the card from
+      // wobbling left/right on ordinary up/down scrolling (only the
+      // incidental sideways jitter of a vertical drag was driving it).
+      let isHorizontal = null;
       card.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
         currentX = startX;
+        isHorizontal = null;
         card.style.transition = 'none';
       }, { passive: true });
       card.addEventListener('touchmove', (e) => {
         if (startX === null) return;
         currentX = e.touches[0].clientX;
         const dx = currentX - startX;
+        const dy = e.touches[0].clientY - startY;
+        if (isHorizontal === null) {
+          if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return; // not enough movement to decide yet
+          isHorizontal = Math.abs(dx) > Math.abs(dy);
+        }
+        if (!isHorizontal) return; // vertical scroll -- leave the card alone
         card.style.transform = `translateX(${dx}px) rotate(${dx / 20}deg)`;
         card.style.opacity = String(Math.max(1 - Math.abs(dx) / 300, 0.4));
       }, { passive: true });
       card.addEventListener('touchend', () => {
         if (startX === null) return;
         const dx = currentX - startX;
+        const wasHorizontal = isHorizontal;
+        startX = null;
+        if (!wasHorizontal) return; // was a vertical scroll -- nothing to animate/act on
         card.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
         if (Math.abs(dx) > 80) {
           card.style.transform = `translateX(${dx > 0 ? 1 : -1}00%) rotate(${dx > 0 ? 15 : -15}deg)`;
@@ -156,7 +173,6 @@
           card.style.transform = '';
           card.style.opacity = '';
         }
-        startX = null;
       });
     }
 

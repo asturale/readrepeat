@@ -107,6 +107,12 @@
   .empty-state { text-align: center; padding: 3em 1.5em; color: var(--text-dim); }
   .empty-state h2 { color: var(--text); margin-bottom: 0.4em; }
 
+  .account-menu { padding: 0; overflow: hidden; }
+  .account-menu a { display: flex; justify-content: space-between; align-items: center; padding: 1em 1.3em; color: var(--text); border-bottom: 1px solid var(--border); font-weight: 600; }
+  .account-menu a:last-child { border-bottom: none; }
+  .account-menu a:hover { background: var(--surface-hover); }
+  .account-menu a span:last-child { color: var(--text-faint); font-weight: 400; }
+
   .hero-review { text-align: center; padding: 2.2em 1.5em; background: linear-gradient(180deg, var(--surface-hover), var(--surface)); }
   .hero-covers { position: relative; height: 130px; margin-bottom: 1.3em; display: flex; align-items: center; justify-content: center; }
   .hero-covers img { position: absolute; width: 76px; aspect-ratio: 2/3; object-fit: cover; border-radius: 6px; box-shadow: 0 10px 24px rgba(0,0,0,0.5); border: 1px solid var(--border); }
