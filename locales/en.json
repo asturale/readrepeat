@@ -23,6 +23,8 @@
 
   "book.back": "All books",
   "book.review_frequency": "Review frequency",
+  "book.delete_book": "Delete book",
+  "book.delete_book_confirm": "Permanently delete this entire book and all its highlights? This cannot be undone.",
   "book.add_manual": "Add a highlight manually",
   "book.text_placeholder": "Text",
   "book.note_placeholder": "Note (optional)",

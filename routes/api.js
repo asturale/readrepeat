@@ -3,7 +3,7 @@ import { requireApiToken } from './middleware.js';
 import { upsertHighlight, mergeHighlights } from '../db/highlights.js';
 import { parseActionTag } from '../lib/action-tags.js';
 import { setBookCover } from '../db/books.js';
-import { enrichBook } from '../db/hardcover.js';
+import { enrichBookWithFallback } from '../db/hardcover.js';
 
 const router = express.Router();
 router.use(requireApiToken);
@@ -104,7 +104,7 @@ router.post('/import', async (req, res) => {
     if (bookRecord && !bookRecord.cover_url) {
         // Fire-and-forget: never make the caller (readwise-sync.mjs) wait on
         // a Hardcover round-trip, and never fail the import if it errors.
-        enrichBook(bookRecord.title, bookRecord.author)
+        enrichBookWithFallback(bookRecord.title, bookRecord.author)
             .then((meta) => meta && setBookCover(bookRecord.id, meta))
             .catch(() => {});
     }

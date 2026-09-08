@@ -61,3 +61,9 @@ export function setReviewWeight(bookId, weight) {
     const w = REVIEW_WEIGHTS.includes(Number(weight)) ? Number(weight) : 1;
     db.prepare('UPDATE books SET review_weight = ?, updated_at = ? WHERE id = ?').run(w, Date.now(), bookId);
 }
+
+// Cascades to highlights (ON DELETE CASCADE) and from there to reviews --
+// deleting a book removes everything under it in one go.
+export function deleteBook(id) {
+    db.prepare('DELETE FROM books WHERE id = ?').run(id);
+}

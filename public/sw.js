@@ -1,3 +1,11 @@
+// A registered fetch handler is required by some browsers' PWA
+// installability check, even a plain passthrough -- always hits the
+// network, no offline caching (avoids serving stale content for an app
+// that's under active development).
+self.addEventListener('fetch', (event) => {
+  event.respondWith(fetch(event.request));
+});
+
 self.addEventListener('push', (event) => {
   let data = {};
   try {

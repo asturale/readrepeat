@@ -3,6 +3,8 @@
 // automation/scripts/hardcover-lib.mjs, kept as its own copy here since this
 // is a separate, independently-deployed app (not sharing code across
 // unrelated docker projects).
+import { lookupOpenLibraryCover } from './openlibrary.js';
+
 const HARDCOVER_TOKEN = process.env.HARDCOVER_API_TOKEN;
 const API = 'https://api.hardcover.app/v1/graphql';
 
@@ -53,4 +55,16 @@ export async function enrichBook(title, author) {
         return { hardcover_id: bookId, author: docAuthors || null, cover_url };
     }
     return null;
+}
+
+// Hardcover first (also gives hardcover_id + a validated author), Open
+// Library as a fallback ONLY for the cover image if Hardcover had none --
+// most books that lack a cover_url after this still simply aren't in
+// either database (expected, especially Dutch/niche titles).
+export async function enrichBookWithFallback(title, author) {
+    const primary = await enrichBook(title, author);
+    if (primary?.cover_url) return primary;
+    const fallbackCover = await lookupOpenLibraryCover(title, author);
+    if (!fallbackCover) return primary;
+    return { ...(primary || {}), cover_url: fallbackCover };
 }

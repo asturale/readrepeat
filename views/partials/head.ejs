@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><%= typeof title !== 'undefined' ? title + ' — ReadRepeat' : 'ReadRepeat' %></title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/favicon.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="theme-color" content="#0f1720">
 <style>
   :root {
     color-scheme: dark;
@@ -115,3 +119,8 @@
 </style>
 </head>
 <body>
+<script>
+  // Registering the service worker (with no push subscription) is enough
+  // for PWA installability -- push itself is opt-in via Account > Settings.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+</script>

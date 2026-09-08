@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireLogin } from './middleware.js';
-import { listBooksWithCounts, getBook, setReviewWeight } from '../db/books.js';
+import { listBooksWithCounts, getBook, setReviewWeight, deleteBook } from '../db/books.js';
 import {
     listHighlightsForBook,
     countHighlights,
@@ -25,10 +25,12 @@ router.use(requireLogin);
 router.get('/', (req, res) => {
     const books = listBooksWithCounts();
     const reviewDue = reviewQueueSize();
+    const batchSize = findUserById(req.session.userId).review_batch_size;
     res.render('dashboard', {
         books,
         totalHighlights: countHighlights(),
         reviewDue,
+        reviewSessionCount: Math.min(reviewDue, batchSize),
         reviewPreview: reviewDue > 0 ? getDueReviewPreview() : null,
         recentHighlights: listRecentHighlights(8),
         reviewEnrolled: reviewEnrolledCount(),
@@ -40,6 +42,13 @@ router.get('/books/:id', (req, res) => {
     if (!book) return res.status(404).render('404');
     const highlights = listHighlightsForBook(book.id).map((h) => ({ ...h, in_review: isInReview(h.id) }));
     res.render('book', { book, highlights, editId: req.query.edit ? Number(req.query.edit) : null });
+});
+
+router.post('/books/:id/delete', (req, res) => {
+    const book = getBook(req.params.id);
+    if (!book) return res.status(404).render('404');
+    deleteBook(book.id);
+    res.redirect('/');
 });
 
 router.post('/books/:id/review-weight', (req, res) => {
