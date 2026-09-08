@@ -14,11 +14,17 @@
         <div class="hero-covers-placeholder">🖍️</div>
       <% } %>
     </div>
-    <h2><%= t('dashboard.daily_review') %></h2>
-    <p class="hero-subtitle">
-      <% if (authorsText) { %><%= t('dashboard.review_subtitle', { count: reviewSessionCount, authors: authorsText }) %><% } else { %><%= t('dashboard.to_review', { count: reviewSessionCount }) %><% } %>
-    </p>
-    <a href="/review"><button class="hero-review-btn"><%= t('dashboard.review_button') %></button></a>
+    <% if (reviewDone) { %>
+      <h2><%= t('dashboard.review_done_heading') %></h2>
+      <p class="hero-subtitle"><%= t('dashboard.review_done_subtitle') %></p>
+      <a href="/review"><button class="hero-review-btn secondary"><%= t('dashboard.review_more_button') %></button></a>
+    <% } else { %>
+      <h2><%= t('dashboard.daily_review') %></h2>
+      <p class="hero-subtitle">
+        <% if (authorsText) { %><%= t('dashboard.review_subtitle', { count: reviewSessionCount, authors: authorsText }) %><% } else { %><%= t('dashboard.to_review', { count: reviewSessionCount }) %><% } %>
+      </p>
+      <a href="/review"><button class="hero-review-btn"><%= t('dashboard.review_button') %></button></a>
+    <% } %>
   </div>
   <% } %>
 
