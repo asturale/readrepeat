@@ -1,0 +1,47 @@
+<% var title = q ? `${t('search.title')}: ${q}` : t('search.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav', { q }) %>
+<main>
+  <h1 class="page-title"><%= t('search.heading') %><% if (q) { %>: "<%= q %>"<% } %></h1>
+
+  <% if (!q) { %>
+  <div class="empty-state card"><%= t('search.hint') %></div>
+  <% } else if (results.books.length === 0 && results.highlights.length === 0) { %>
+  <div class="empty-state card"><%= t('search.no_results') %></div>
+  <% } else { %>
+
+  <% if (results.books.length > 0) { %>
+  <h2><%= t('search.books_heading') %></h2>
+  <div class="book-grid" style="margin-bottom:2em;">
+    <% results.books.forEach(function(b) { %>
+    <a href="/books/<%= b.id %>">
+      <% if (b.cover_url) { %>
+        <img class="book-cover" src="<%= b.cover_url %>" alt="">
+      <% } else { %>
+        <div class="book-cover"><%= b.title %></div>
+      <% } %>
+      <div class="book-title"><%= b.title %></div>
+      <% if (b.author) { %><div class="book-author"><%= b.author %></div><% } %>
+      <div class="book-count"><%= b.highlight_count %> <%= t(b.highlight_count === 1 ? 'highlight_count_one' : 'highlight_count_other') %></div>
+    </a>
+    <% }) %>
+  </div>
+  <% } %>
+
+  <% if (results.highlights.length > 0) { %>
+  <h2><%= t('search.highlights_heading') %></h2>
+  <% results.highlights.forEach(function(h) { %>
+  <a href="/books/<%= h.book_id %>" style="text-decoration:none; color:inherit; display:block;">
+    <div class="highlight <%= h.color ? 'color-' + h.color : '' %>">
+      <div style="font-size:0.85em; color:var(--text-dim)"><%= h.book_title %><% if (h.book_author) { %> — <%= h.book_author %><% } %></div>
+      <div class="highlight-text" style="margin-top:0.4em"><%- md(h.text) %></div>
+      <% if (h.note) { %><div class="highlight-note">📝 <%- md(h.note) %></div><% } %>
+    </div>
+  </a>
+  <% }) %>
+  <% } %>
+
+  <% } %>
+</main>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<% var title = t('settings.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <p><a href="/account">&larr; <%= t('settings.back') %></a></p>
+  <h1 class="page-title"><%= t('settings.title') %></h1>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('settings.batch_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('settings.batch_help') %></p>
+    <form method="post" action="/account/settings/review-batch-size" style="display:flex; gap:0.6em; align-items:center;">
+      <input type="number" name="size" min="1" max="50" value="<%= reviewBatchSize %>" style="width:6em;">
+      <button type="submit"><%= t('settings.batch_save') %></button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('settings.reminders_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('settings.reminders_help') %></p>
+    <form method="post" action="/account/settings/reminder-frequency" style="display:flex; gap:0.6em; align-items:center; flex-wrap:wrap;">
+      <select name="hours">
+        <option value="0" <%= reminderFrequencyHours === 0 ? 'selected' : '' %>><%= t('settings.frequency_never') %></option>
+        <option value="24" <%= reminderFrequencyHours === 24 ? 'selected' : '' %>><%= t('settings.frequency_daily') %></option>
+        <option value="48" <%= reminderFrequencyHours === 48 ? 'selected' : '' %>><%= t('settings.frequency_2days') %></option>
+        <option value="72" <%= reminderFrequencyHours === 72 ? 'selected' : '' %>><%= t('settings.frequency_3days') %></option>
+        <option value="168" <%= reminderFrequencyHours === 168 ? 'selected' : '' %>><%= t('settings.frequency_weekly') %></option>
+      </select>
+      <button type="submit"><%= t('settings.frequency_save') %></button>
+    </form>
+
+    <form method="post" action="/account/settings/reminder-hour" style="display:flex; gap:0.6em; align-items:center; flex-wrap:wrap; margin-top:0.8em;">
+      <label style="font-size:0.85em; color:var(--text-dim); font-weight:600;"><%= t('settings.reminder_time_label') %>
+        <select name="hour" style="display:block; margin-top:0.3em;">
+          <% for (let h = 0; h < 24; h++) { %>
+          <option value="<%= h %>" <%= reminderHour === h ? 'selected' : '' %>><%= String(h).padStart(2,'0') %>:00</option>
+          <% } %>
+        </select>
+      </label>
+      <button type="submit"><%= t('settings.reminder_time_save') %></button>
+    </form>
+
+    <div id="push-status" style="margin-top:1.2em; font-size:0.9em; color:var(--text-dim);"></div>
+    <p style="margin-top:0.8em;">
+      <button type="button" id="push-toggle" class="secondary"></button>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('settings.text_size_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('settings.text_size_help') %></p>
+    <form method="post" action="/account/settings/text-scale" style="display:flex; gap:0.6em; align-items:center;">
+      <select name="scale">
+        <option value="0.7" <%= textScale === 0.7 ? 'selected' : '' %>><%= t('settings.text_size_xsmall') %></option>
+        <option value="0.85" <%= textScale === 0.85 ? 'selected' : '' %>><%= t('settings.text_size_small') %></option>
+        <option value="1" <%= textScale === 1 ? 'selected' : '' %>><%= t('settings.text_size_normal') %></option>
+        <option value="1.15" <%= textScale === 1.15 ? 'selected' : '' %>><%= t('settings.text_size_large') %></option>
+        <option value="1.3" <%= textScale === 1.3 ? 'selected' : '' %>><%= t('settings.text_size_xlarge') %></option>
+      </select>
+      <button type="submit"><%= t('settings.text_size_save') %></button>
+    </form>
+  </div>
+
+  <script>
+    const VAPID_PUBLIC_KEY = <%- JSON.stringify(vapidPublicKey) %>;
+    const S = <%- JSON.stringify({
+        notSupported: t('settings.push_not_supported'), enable: t('settings.push_enable'),
+        disable: t('settings.push_disable'), enabled: t('settings.push_enabled'), denied: t('settings.push_denied'),
+    }) %>;
+    let subscribed = <%- pushSubscribed ? 'true' : 'false' %>;
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+    }
+
+    const statusEl = document.getElementById('push-status');
+    const toggleEl = document.getElementById('push-toggle');
+
+    function renderState() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) {
+        statusEl.textContent = S.notSupported;
+        toggleEl.style.display = 'none';
+        return;
+      }
+      if (Notification.permission === 'denied') {
+        statusEl.textContent = S.denied;
+        toggleEl.style.display = 'none';
+        return;
+      }
+      statusEl.textContent = subscribed ? S.enabled : '';
+      toggleEl.textContent = subscribed ? S.disable : S.enable;
+    }
+
+    async function enablePush() {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { renderState(); return; }
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      await fetch('/account/push-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub.toJSON()),
+      });
+      subscribed = true;
+      renderState();
+    }
+
+    async function disablePush() {
+      const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+      const sub = await registration?.pushManager.getSubscription();
+      if (sub) {
+        await fetch('/account/push-unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+        await sub.unsubscribe();
+      }
+      subscribed = false;
+      renderState();
+    }
+
+    toggleEl.onclick = () => (subscribed ? disablePush() : enablePush());
+    renderState();
+  </script>
+</main>
+</body>
+</html>

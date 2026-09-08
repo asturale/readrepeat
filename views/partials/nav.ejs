@@ -1,0 +1,16 @@
+<header class="topbar">
+  <a class="brand" href="/">🖍️ ReadRepeat</a>
+  <% if (user) { %>
+  <nav>
+    <form method="get" action="/search" class="search-box">
+      <input type="search" name="q" placeholder="<%= t('nav.search_placeholder') %>" value="<%= typeof q !== 'undefined' ? q : '' %>">
+    </form>
+    <a href="/"><%= t('nav.highlights') %></a>
+    <a href="/review"><%= t('nav.review') %></a>
+    <a href="/account"><%= t('nav.account') %></a>
+    <form method="post" action="/logout" style="display:inline">
+      <button type="submit" class="secondary"><%= t('nav.logout') %></button>
+    </form>
+  </nav>
+  <% } %>
+</header>
