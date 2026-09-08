@@ -147,13 +147,22 @@
         if (Math.abs(dx) > 80) {
           card.style.transform = `translateX(${dx > 0 ? 1 : -1}00%) rotate(${dx > 0 ? 15 : -15}deg)`;
           card.style.opacity = '0';
-          setTimeout(() => act('next'), 150);
+          // Right = back to the previous card (just re-view it, no new
+          // POST -- its schedule from last time stays as-is). Left = same
+          // as "Volgende": records the review and advances.
+          if (dx > 0) setTimeout(goBack, 150);
+          else setTimeout(() => act('next'), 150);
         } else {
           card.style.transform = '';
           card.style.opacity = '';
         }
         startX = null;
       });
+    }
+
+    function goBack() {
+      if (i > 0) i--;
+      renderCard();
     }
 
     async function act(action) {
