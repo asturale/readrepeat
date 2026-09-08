@@ -1,0 +1,20 @@
+services:
+  app:
+    security_opt:
+      - no-new-privileges:true
+    build: .
+    container_name: readrepeat
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATABASE_PATH=/data/readrepeat.db
+      - NODE_ENV=production
+      - TZ=Europe/Amsterdam
+    volumes:
+      - ./data:/data
+    networks:
+      - caddy
+
+networks:
+  caddy:
+    external: true

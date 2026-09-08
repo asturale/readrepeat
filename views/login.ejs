@@ -1,0 +1,18 @@
+<% var title = t('login.submit') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <div class="card center-form">
+    <h1>🖍️ ReadRepeat</h1>
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <form class="stacked" method="post" action="/login">
+      <label><%= t('login.username') %></label>
+      <input type="text" name="username" required autofocus>
+      <label><%= t('login.password') %></label>
+      <input type="password" name="password" required>
+      <p><button type="submit" style="width:100%"><%= t('login.submit') %></button></p>
+    </form>
+  </div>
+</main>
+</body>
+</html>

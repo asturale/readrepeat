@@ -1,0 +1,56 @@
+<% var title = t('account.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <h1 class="page-title"><%= t('account.title') %></h1>
+  <p><a href="/account/settings"><%= t('account.settings_link') %> →</a></p>
+
+  <% if (newToken) { %>
+  <div class="card">
+    <strong><%= t('account.new_token_created') %></strong> <%= t('account.new_token_copy') %>
+    <code class="token"><%= newToken %></code>
+  </div>
+  <% } %>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('account.tokens_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('account.tokens_help_pre') %> <code>Authorization: Bearer &lt;token&gt;</code> <%= t('account.tokens_help_mid') %> <code>POST /api/import</code>.</p>
+    <% if (tokens.length > 0) { %>
+    <table>
+      <tr><th><%= t('account.label') %></th><th><%= t('account.created') %></th><th><%= t('account.last_used') %></th><th></th></tr>
+      <% tokens.forEach(function(tok) { %>
+      <tr>
+        <td><%= tok.label || t('account.no_label') %></td>
+        <td><%= new Date(tok.created_at).toLocaleDateString(dateLocale) %></td>
+        <td><%= tok.last_used_at ? new Date(tok.last_used_at).toLocaleDateString(dateLocale) : t('account.never') %></td>
+        <td>
+          <form method="post" action="/account/tokens/<%= tok.id %>/revoke" onsubmit="return confirm('<%= t('account.revoke_confirm') %>')">
+            <button type="submit" class="danger"><%= t('account.revoke') %></button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </table>
+    <% } %>
+    <form method="post" action="/account/tokens" style="margin-top:1.2em; display:flex; gap:0.6em; flex-wrap:wrap;">
+      <input type="text" name="label" placeholder="<%= t('account.token_label_placeholder') %>" style="flex:1; min-width:200px;">
+      <button type="submit"><%= t('account.new_token') %></button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('account.language_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('account.language_help') %></p>
+    <form method="post" action="/account/locale" style="display:flex; gap:0.6em; flex-wrap:wrap; align-items:center;">
+      <select name="locale">
+        <option value="" <%= !storedLocale ? 'selected' : '' %>><%= t('account.language_auto') %></option>
+        <% SUPPORTED_LOCALES.forEach(function(loc) { %>
+        <option value="<%= loc %>" <%= storedLocale === loc ? 'selected' : '' %>><%= loc === 'nl' ? 'Nederlands' : 'English' %></option>
+        <% }) %>
+      </select>
+      <button type="submit"><%= t('account.language_save') %></button>
+    </form>
+  </div>
+</main>
+</body>
+</html>
