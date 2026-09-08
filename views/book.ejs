@@ -20,6 +20,18 @@
           </select>
         </label>
       </form>
+      <details style="margin-top:0.8em;">
+        <summary style="cursor:pointer; font-size:0.85em; color:var(--text-dim); font-weight:600;"><%= t('book.edit_metadata') %></summary>
+        <form method="post" action="/books/<%= book.id %>/metadata" class="stacked" style="margin-top:0.6em; max-width:360px;">
+          <label><%= t('book.title_label') %></label>
+          <input type="text" name="title" value="<%= book.title %>" required>
+          <label><%= t('book.author_label') %></label>
+          <input type="text" name="author" value="<%= book.author || '' %>">
+          <label><%= t('book.cover_url_label') %></label>
+          <input type="text" name="cover_url" value="<%= book.cover_url || '' %>">
+          <p><button type="submit"><%= t('book.metadata_save') %></button></p>
+        </form>
+      </details>
       <form method="post" action="/books/<%= book.id %>/delete" style="margin-top:0.8em" onsubmit="return confirm('<%= t('book.delete_book_confirm') %>')">
         <button type="submit" class="danger"><%= t('book.delete_book') %></button>
       </form>

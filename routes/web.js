@@ -1,6 +1,8 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { requireLogin } from './middleware.js';
-import { listBooksWithCounts, getBook, setReviewWeight, deleteBook } from '../db/books.js';
+import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata } from '../db/books.js';
 import {
     listHighlightsForBook,
     countHighlights,
@@ -19,8 +21,14 @@ import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview
 import { renderShareImage } from '../lib/share-image.js';
 import { search } from '../db/search.js';
 
+const pkg = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'package.json'), 'utf8'));
+
 const router = express.Router();
 router.use(requireLogin);
+
+router.get('/about', (req, res) => {
+    res.render('about', { version: pkg.version, highlightCount: countHighlights(), bookCount: listBooksWithCounts().length });
+});
 
 router.get('/', (req, res) => {
     const bookCount = listBooksWithCounts().length;
@@ -29,11 +37,9 @@ router.get('/', (req, res) => {
     res.render('dashboard', {
         bookCount,
         totalHighlights: countHighlights(),
-        reviewDue,
         reviewSessionCount: Math.min(reviewDue, batchSize),
         reviewPreview: reviewDue > 0 ? getDueReviewPreview() : null,
         recentHighlights: listRecentHighlights(8),
-        reviewEnrolled: reviewEnrolledCount(),
     });
 });
 
@@ -53,6 +59,21 @@ router.post('/books/:id/delete', (req, res) => {
     if (!book) return res.status(404).render('404');
     deleteBook(book.id);
     res.redirect('/');
+});
+
+router.post('/books/:id/metadata', (req, res) => {
+    const book = getBook(req.params.id);
+    if (!book) return res.status(404).render('404');
+    const { title, author, cover_url } = req.body;
+    if (title && title.trim()) {
+        try {
+            updateBookMetadata(book.id, { title: title.trim(), author: author?.trim(), cover_url: cover_url?.trim() });
+        } catch (e) {
+            // Almost certainly a normalized_key collision with another
+            // existing book -- non-fatal, just leave the metadata as-is.
+        }
+    }
+    res.redirect(`/books/${req.params.id}`);
 });
 
 router.post('/books/:id/review-weight', (req, res) => {

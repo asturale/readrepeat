@@ -1,0 +1,18 @@
+<% var title = t('about.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <p><a href="/account">&larr; <%= t('about.back') %></a></p>
+  <div class="card center-form" style="text-align:center;">
+    <img src="/icons/icon-192.png" alt="" style="width:64px; height:64px; border-radius:14px; margin-bottom:0.6em;">
+    <h1 style="margin:0">ReadRepeat</h1>
+    <p style="color:var(--text-dim); margin:0.4em 0 1em;"><%= t('about.description') %></p>
+    <p style="color:var(--text-faint); font-size:0.9em;">
+      <%= t('about.version') %> <%= version %><br>
+      <%= t('about.stats', { highlights: highlightCount, books: bookCount }) %>
+    </p>
+    <p style="margin-top:1.2em;"><a href="https://github.com/asturale/readrepeat" target="_blank" rel="noopener"><%= t('about.repo') %></a></p>
+  </div>
+</main>
+</body>
+</html>

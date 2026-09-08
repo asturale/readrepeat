@@ -24,7 +24,6 @@
 
   <p class="page-sub">
     <%= t('dashboard.stats', { count: totalHighlights, books: bookCount }) %> &middot; <a href="/books"><%= t('books.view_all') %></a>
-    <% if (reviewEnrolled > 0) { %> &middot; <a href="/review"><%= t('dashboard.to_review', { count: reviewDue }) %></a> (<%= t('dashboard.enrolled', { count: reviewEnrolled }) %>)<% } %>
   </p>
 
   <% if (bookCount === 0) { %>

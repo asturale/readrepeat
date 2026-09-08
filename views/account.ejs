@@ -3,7 +3,7 @@
 <%- include('partials/nav') %>
 <main>
   <h1 class="page-title"><%= t('account.title') %></h1>
-  <p><a href="/account/settings"><%= t('account.settings_link') %> →</a></p>
+  <p><a href="/account/settings"><%= t('account.settings_link') %> →</a> &middot; <a href="/about"><%= t('account.about_link') %> →</a></p>
 
   <% if (newToken) { %>
   <div class="card">
