@@ -91,6 +91,10 @@
         doneHeading: t('review.done_heading'), doneBody: t('review.done_body'), back: t('review.back'),
         discardConfirm: t('review.discard_confirm'), shareTitle: t('review.share_title'), bookTitle: t('review.book_title'),
     }).replace(/</g, '\\u003c') %>;
+    // Opened from a feed click (single highlight, ?from=feed): that's
+    // browsing, not a review session -- skip the done-screen and the
+    // session/streak POST entirely, just go back to the feed.
+    const FROM_FEED = <%- JSON.stringify(!!fromFeed) %>;
     let i = 0;
 
     // Flat, monochrome (currentColor) icons matching the app's theme --
@@ -113,6 +117,12 @@
 
     function renderCard() {
       if (i >= batch.length) {
+        if (FROM_FEED) {
+          // Just browsing a single feed card -- no done screen, no streak
+          // credit, straight back to wherever the feed was.
+          history.length > 1 ? history.back() : (location.href = '/');
+          return;
+        }
         // Only reached after a non-empty batch was fully gone through --
         // this IS "did a review session today" for the dashboard's
         // "Klaar voor vandaag" card. Fire-and-forget: never block the
@@ -137,7 +147,7 @@
       card.style.transition = 'none';
       card.style.transform = '';
       card.style.opacity = '';
-      document.getElementById('btn-book').onclick = () => location.href = '/books/' + h.book_id;
+      document.getElementById('btn-book').onclick = () => location.href = '/books/' + h.book_id + '#highlight-' + h.id;
       document.getElementById('btn-share').onclick = () => location.href = '/highlights/' + h.id + '/share';
       renderDots();
     }

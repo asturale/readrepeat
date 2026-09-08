@@ -2,7 +2,7 @@
 <%- include('partials/head', { title }) %>
 <%- include('partials/nav') %>
 <main>
-  <p><a href="/">&larr; <%= t('book.back') %></a></p>
+  <p><a href="/books">&larr; <%= t('book.back') %></a></p>
   <div class="card" style="display:flex; gap:1.5em; align-items:flex-start; flex-wrap:wrap;">
     <% if (book.cover_url) { %>
       <img src="<%= book.cover_url %>" alt="" style="width:120px; border-radius:var(--radius-md); box-shadow:var(--shadow); border:1px solid var(--border);">
@@ -131,5 +131,6 @@
     };
   </script>
 </main>
+<%- include('partials/back-to-top') %>
 </body>
 </html>
