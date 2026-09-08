@@ -1,0 +1,144 @@
+<% var title = t('review.title') %>
+<%- include('partials/head', { title }) %>
+<style>
+  .review-topbar { display:flex; align-items:center; justify-content:space-between; padding:1em 1.2em; }
+  .review-topbar button { background:none; border:none; color:var(--text); font-size:1.4em; cursor:pointer; padding:0.2em 0.5em; border-radius:50%; }
+  .review-topbar button:hover { background:var(--surface-hover); }
+  .review-dots { display:flex; gap:6px; }
+  .review-dots span { width:7px; height:7px; border-radius:50%; background:var(--border); display:inline-block; }
+  .review-dots span.done { background:var(--text-faint); }
+  .review-dots span.current { background:var(--text); }
+  .review-card { max-width:640px; margin:0 auto; padding:2em 1.5em; min-height:50vh; display:flex; flex-direction:column; justify-content:center; }
+  .review-card .book-line { font-size:0.85em; color:var(--text-dim); margin-bottom:1.2em; }
+  .review-card .text { font-family: Georgia, 'Times New Roman', serif; font-size:calc(1.7rem * var(--text-scale)); line-height:1.45; color:var(--text); }
+  .review-card .note { margin-top:1em; font-size:0.95em; color:var(--text-dim); font-style:italic; }
+  .review-icons { max-width:640px; margin:1em auto 0; padding:0 1.5em; display:flex; gap:1.4em; }
+  .review-icons button { background:none; border:none; color:var(--text-faint); font-size:1.3em; cursor:pointer; }
+  .review-icons button:hover { color:var(--text); }
+  .review-bottombar { position:fixed; bottom:0; left:0; right:0; background:var(--bg); border-top:1px solid var(--border); padding:1em 1.5em 1.6em; display:flex; justify-content:space-around; align-items:center; }
+  .review-bottombar .action { display:flex; flex-direction:column; align-items:center; gap:0.4em; background:none; border:none; color:var(--text); cursor:pointer; font-size:0.85em; }
+  .review-bottombar .pill { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4em; }
+  .review-bottombar .discard .pill { background:var(--surface-hover); }
+  .review-bottombar .freq .pill { background:var(--surface-hover); }
+  .review-bottombar .keep .pill { background:var(--accent); }
+  .freq-menu { position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:var(--surface-hover); border-radius:12px; padding:0.5em; display:none; flex-direction:column; gap:0.3em; box-shadow:0 10px 30px rgba(0,0,0,0.4); border:1px solid var(--border); }
+  .freq-menu.open { display:flex; }
+  .freq-menu button { background:none; border:none; color:var(--text); padding:0.6em 1.2em; text-align:left; border-radius:8px; cursor:pointer; }
+  .freq-menu button:hover { background:var(--bg); }
+  .review-empty { max-width:480px; margin:4em auto; text-align:center; }
+  main { padding-bottom:6em; }
+</style>
+</head>
+<body>
+  <div class="review-topbar">
+    <button onclick="location.href='/'">✕</button>
+    <div class="review-dots" id="dots"></div>
+    <div style="width:2.4em"></div>
+  </div>
+
+  <main style="max-width:none; padding-left:0; padding-right:0;">
+    <% if (batch.length === 0) { %>
+    <div class="review-empty">
+      <h2><%= t('review.empty_heading') %></h2>
+      <p style="color:var(--text-dim)"><%= t('review.empty_body') %></p>
+      <p><a href="/">&larr; <%= t('review.back') %></a></p>
+    </div>
+    <% } else { %>
+    <div class="review-card" id="card"></div>
+    <div class="review-icons">
+      <button title="<%= t('review.share_title') %>" id="btn-share">⤴</button>
+      <button title="<%= t('review.book_title') %>" id="btn-book">📖</button>
+    </div>
+    <% } %>
+  </main>
+
+  <% if (batch.length > 0) { %>
+  <div class="freq-menu" id="freq-menu">
+    <button data-action="more"><%= t('review.more') %></button>
+    <button data-action="less"><%= t('review.less') %></button>
+  </div>
+  <div class="review-bottombar">
+    <button class="action discard" id="btn-discard"><span class="pill">✕</span><%= t('review.discard') %></button>
+    <button class="action freq" id="btn-freq"><span class="pill">↕</span><%= t('review.frequency') %></button>
+    <button class="action keep" id="btn-keep"><span class="pill">✓</span><%= t('review.next') %></button>
+  </div>
+  <% } %>
+
+  <script>
+    // Escape "<" so a highlight/note containing a literal script-closing
+    // tag can never break out of this inline script block (JSON.stringify
+    // alone does NOT do this). NOTE: never spell that closing tag out
+    // literally in this comment either -- the HTML parser looks for the
+    // raw byte sequence regardless of JS syntax, even inside a // comment,
+    // and would cut the whole script block off right here.
+    // text/note/book_title/book_author arrive PRE-RENDERED to safe HTML via
+    // md() (escapes first, then adds a fixed set of safe tags -- see
+    // lib/markdown.js) so the client just drops them straight into
+    // innerHTML below, no client-side escaping needed for those fields.
+    const batch = <%- JSON.stringify(batch.map(h => ({
+        id: h.id, textHtml: md(h.text), noteHtml: h.note ? md(h.note) : null,
+        bookTitleHtml: md(h.book_title), bookAuthorHtml: h.book_author ? md(h.book_author) : null,
+        book_id: h.book_id,
+    }))).replace(/</g, '\\u003c') %>;
+    const S = <%- JSON.stringify({
+        doneHeading: t('review.done_heading'), doneBody: t('review.done_body'), back: t('review.back'),
+        discardConfirm: t('review.discard_confirm'),
+    }).replace(/</g, '\\u003c') %>;
+    let i = 0;
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
+    }
+
+    function renderDots() {
+      document.getElementById('dots').innerHTML = batch
+        .map((_, idx) => `<span class="${idx < i ? 'done' : idx === i ? 'current' : ''}"></span>`)
+        .join('');
+    }
+
+    function renderCard() {
+      if (i >= batch.length) {
+        document.querySelector('main').innerHTML =
+          '<div class="review-empty"><h2>' + esc(S.doneHeading) + '</h2><p style="color:var(--text-dim)">' + esc(S.doneBody) + '</p><p><a href="/">&larr; ' + esc(S.back) + '</a></p></div>';
+        document.querySelector('.review-bottombar')?.remove();
+        document.getElementById('freq-menu')?.remove();
+        return;
+      }
+      const h = batch[i];
+      document.getElementById('card').innerHTML =
+        '<div class="book-line">' + h.bookTitleHtml + (h.bookAuthorHtml ? ' — ' + h.bookAuthorHtml : '') + '</div>' +
+        '<div class="text">' + h.textHtml + '</div>' +
+        (h.noteHtml ? '<div class="note">📝 ' + h.noteHtml + '</div>' : '');
+      document.getElementById('btn-book').onclick = () => location.href = '/books/' + h.book_id;
+      document.getElementById('btn-share').onclick = () => location.href = '/highlights/' + h.id + '/share';
+      renderDots();
+    }
+
+    async function act(action) {
+      const h = batch[i];
+      await fetch('/review/' + h.id, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=' + encodeURIComponent(action),
+      });
+      i++;
+      renderCard();
+    }
+
+    if (batch.length > 0) {
+      renderCard();
+      document.getElementById('btn-keep').onclick = () => act('next');
+      document.getElementById('btn-discard').onclick = () => {
+        if (confirm(S.discardConfirm)) act('stop');
+      };
+      const freqMenu = document.getElementById('freq-menu');
+      document.getElementById('btn-freq').onclick = () => freqMenu.classList.toggle('open');
+      freqMenu.querySelectorAll('button').forEach((btn) => {
+        btn.onclick = () => { freqMenu.classList.remove('open'); act(btn.dataset.action); };
+      });
+    }
+  </script>
+</body>
+</html>

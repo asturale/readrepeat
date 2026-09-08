@@ -1,0 +1,21 @@
+<% var title = t('setup.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <div class="card center-form">
+    <h1><%= t('setup.heading') %></h1>
+    <p style="color:var(--text-dim); text-align:center;"><%= t('setup.intro') %></p>
+    <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <form class="stacked" method="post" action="/setup">
+      <label><%= t('setup.username') %></label>
+      <input type="text" name="username" required autofocus>
+      <label><%= t('setup.password') %></label>
+      <input type="password" name="password" required minlength="8">
+      <label><%= t('setup.password2') %></label>
+      <input type="password" name="password2" required minlength="8">
+      <p><button type="submit" style="width:100%"><%= t('setup.submit') %></button></p>
+    </form>
+  </div>
+</main>
+</body>
+</html>

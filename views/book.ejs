@@ -1,0 +1,93 @@
+<% var title = book.title %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <p><a href="/">&larr; <%= t('book.back') %></a></p>
+  <div class="card" style="display:flex; gap:1.5em; align-items:flex-start; flex-wrap:wrap;">
+    <% if (book.cover_url) { %>
+      <img src="<%= book.cover_url %>" alt="" style="width:120px; border-radius:var(--radius-md); box-shadow:var(--shadow); border:1px solid var(--border);">
+    <% } %>
+    <div style="flex:1; min-width:200px;">
+      <h1 style="margin:0"><%= book.title %></h1>
+      <% if (book.author) { %><p style="color:var(--text-dim); margin:0.3em 0"><%= book.author %></p><% } %>
+      <p style="color:var(--text-faint); margin:0.3em 0"><%= highlights.length %> <%= t(highlights.length === 1 ? 'highlight_count_one' : 'highlight_count_other') %></p>
+      <form method="post" action="/books/<%= book.id %>/review-weight" style="margin-top:0.8em">
+        <label style="display:block; font-size:0.85em; color:var(--text-dim); font-weight:600;"><%= t('book.review_frequency') %>
+          <select name="weight" onchange="this.form.submit()" style="display:block; margin-top:0.3em;">
+            <% [0.25,0.5,1,1.5,2,3].forEach(function(w) { %>
+            <option value="<%= w %>" <%= book.review_weight === w ? 'selected' : '' %>><%= w %>x</option>
+            <% }) %>
+          </select>
+        </label>
+      </form>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary style="cursor:pointer; font-weight:600; list-style:none; display:flex; align-items:center; gap:0.5em;">
+      <span style="font-size:1.1em">＋</span> <%= t('book.add_manual') %>
+    </summary>
+    <form class="stacked" method="post" action="/books/<%= book.id %>/highlights/new">
+      <textarea name="text" rows="3" placeholder="<%= t('book.text_placeholder') %>" required></textarea>
+      <input type="text" name="note" placeholder="<%= t('book.note_placeholder') %>" style="margin-top:0.5em; width:100%;">
+      <p><button type="submit"><%= t('book.add_button') %></button></p>
+    </form>
+  </details>
+
+  <form method="post" action="/books/<%= book.id %>/merge" id="merge-form">
+    <p>
+      <button type="submit" class="secondary" onclick="return confirm('<%= t('book.merge_confirm') %>')"><%= t('book.merge_selection') %></button>
+    </p>
+
+    <% highlights.forEach(function(h) { %>
+      <% if (h.is_heading) { %>
+        <div class="heading-divider"><%= '#'.repeat(h.heading_level) %> <%= h.text %></div>
+      <% } else { %>
+      <div class="highlight <%= h.color ? 'color-' + h.color : '' %>">
+        <label style="display:flex; gap:0.6em; align-items:flex-start;">
+          <input type="checkbox" name="ids" value="<%= h.id %>" style="margin-top:0.35em">
+          <div style="flex:1">
+            <% if (editId === h.id) { %>
+              <form method="post" action="/books/<%= book.id %>/highlights/<%= h.id %>/edit" class="stacked">
+                <textarea name="text" rows="3" style="width:100%"><%= h.text %></textarea>
+                <input type="text" name="note" value="<%= h.note || '' %>" placeholder="<%= t('book.note_label') %>" style="margin-top:0.4em; width:100%">
+                <p>
+                  <button type="submit"><%= t('book.save') %></button>
+                  <a href="/books/<%= book.id %>"><button type="button" class="secondary"><%= t('book.cancel') %></button></a>
+                </p>
+              </form>
+            <% } else { %>
+              <% if (h.display_chapter) { %><div class="highlight-chapter"><%= h.display_chapter %></div><% } %>
+              <div class="highlight-text"><%- md(h.text) %></div>
+              <% if (h.note) { %><div class="highlight-note">📝 <%- md(h.note) %></div><% } %>
+              <% if (h.tags) { %>
+              <div class="highlight-tags">
+                <% h.tags.split(',').filter(Boolean).forEach(function(t2) { %>
+                  <span class="tag-pill">#<%= t2 %></span>
+                <% }) %>
+              </div>
+              <% } %>
+              <div class="highlight-meta">
+                <% if (h.location) { %><%= t('book.location', { location: h.location }) %> &middot; <% } %><%= new Date(h.created_at).toLocaleDateString(dateLocale) %>
+                &middot; <%= h.source %>
+              </div>
+              <div style="margin-top:0.7em; display:flex; gap:0.5em; flex-wrap:wrap;">
+                <a href="/books/<%= book.id %>?edit=<%= h.id %>"><button type="button" class="secondary"><%= t('book.edit') %></button></a>
+                <a href="/highlights/<%= h.id %>/share"><button type="button" class="secondary"><%= t('book.share') %></button></a>
+                <form method="post" action="/books/<%= book.id %>/highlights/<%= h.id %>/review-toggle" style="display:inline">
+                  <button type="submit" class="secondary"><%= h.in_review ? t('book.in_review') : t('book.excluded_from_review') %></button>
+                </form>
+                <form method="post" action="/books/<%= book.id %>/highlights/<%= h.id %>/delete" style="display:inline" onsubmit="return confirm('<%= t('book.delete_confirm') %>')">
+                  <button type="submit" class="danger"><%= t('book.delete') %></button>
+                </form>
+              </div>
+            <% } %>
+          </div>
+        </label>
+      </div>
+      <% } %>
+    <% }) %>
+  </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<% var title = t('share.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <p><a href="/books/<%= book.id %>">&larr; <%= t('share.back') %></a></p>
+  <div class="card">
+    <h1 class="page-title"><%= t('share.heading') %></h1>
+    <p style="color:var(--text-dim)"><%= t('share.instructions') %></p>
+    <img src="/highlights/<%= highlight.id %>/share.png" alt="" style="max-width:100%; border-radius:var(--radius-lg); display:block; margin:1em 0; border:1px solid var(--border);">
+    <a href="/highlights/<%= highlight.id %>/share.png" target="_blank"><%= t('share.open_new_tab') %></a>
+  </div>
+</main>
+</body>
+</html>
