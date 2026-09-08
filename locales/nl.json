@@ -26,6 +26,11 @@
   "books.title": "Boeken",
   "books.heading": "Je boeken",
   "books.view_all": "Alle boeken bekijken",
+  "books.sort_label": "Sorteren",
+  "books.sort_recent": "Recent bijgewerkt",
+  "books.sort_title": "Titel (A-Z)",
+  "books.sort_author": "Auteur (A-Z)",
+  "books.sort_highlights": "Meeste highlights",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
 

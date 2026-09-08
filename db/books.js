@@ -62,13 +62,23 @@ export function setBookCover(bookId, { cover_url, hardcover_id, author }) {
     ).run(cover_url || null, hardcover_id || null, author || null, Date.now(), bookId);
 }
 
-export function listBooksWithCounts() {
+// sort is never interpolated directly -- picked from this fixed allowlist
+// so there's no path from a query-string value to raw SQL.
+const BOOK_SORTS = {
+    recent: 'b.updated_at DESC',
+    title: 'b.title COLLATE NOCASE ASC',
+    author: 'b.author COLLATE NOCASE ASC, b.title COLLATE NOCASE ASC',
+    highlights: 'highlight_count DESC',
+};
+
+export function listBooksWithCounts(sort = 'recent') {
+    const orderBy = BOOK_SORTS[sort] || BOOK_SORTS.recent;
     return db
         .prepare(
             `SELECT b.*, COUNT(h.id) AS highlight_count
              FROM books b LEFT JOIN highlights h ON h.book_id = b.id
              GROUP BY b.id
-             ORDER BY b.updated_at DESC`
+             ORDER BY ${orderBy}`
         )
         .all();
 }

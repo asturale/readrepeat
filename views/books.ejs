@@ -2,7 +2,15 @@
 <%- include('partials/head', { title }) %>
 <%- include('partials/nav') %>
 <main>
-  <h1 class="page-title"><%= t('books.heading') %></h1>
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.6em;">
+    <h1 class="page-title" style="margin:0;"><%= t('books.heading') %></h1>
+    <select onchange="location.href='/books?sort='+this.value" style="width:auto;">
+      <option value="recent" <%= sort === 'recent' ? 'selected' : '' %>><%= t('books.sort_recent') %></option>
+      <option value="title" <%= sort === 'title' ? 'selected' : '' %>><%= t('books.sort_title') %></option>
+      <option value="author" <%= sort === 'author' ? 'selected' : '' %>><%= t('books.sort_author') %></option>
+      <option value="highlights" <%= sort === 'highlights' ? 'selected' : '' %>><%= t('books.sort_highlights') %></option>
+    </select>
+  </div>
   <p class="page-sub"><%= t('dashboard.stats', { count: totalHighlights, books: books.length }) %></p>
   <% if (books.length === 0) { %>
     <div class="empty-state card">

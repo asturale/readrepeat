@@ -26,6 +26,11 @@
   "books.title": "Books",
   "books.heading": "Your books",
   "books.view_all": "View all books",
+  "books.sort_label": "Sort",
+  "books.sort_recent": "Recently updated",
+  "books.sort_title": "Title (A-Z)",
+  "books.sort_author": "Author (A-Z)",
+  "books.sort_highlights": "Most highlights",
   "highlight_count_one": "highlight",
   "highlight_count_other": "highlights",
 
