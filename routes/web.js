@@ -59,7 +59,8 @@ router.get('/', (req, res) => {
 });
 
 router.get('/books', (req, res) => {
-    res.render('books', { books: listBooksWithCounts(), totalHighlights: countHighlights() });
+    const sort = ['recent', 'title', 'author', 'highlights'].includes(req.query.sort) ? req.query.sort : 'recent';
+    res.render('books', { books: listBooksWithCounts(sort), totalHighlights: countHighlights(), sort });
 });
 
 router.get('/books/:id', (req, res) => {
