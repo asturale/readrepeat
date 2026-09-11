@@ -1,7 +1,9 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { requireLogin } from './middleware.js';
+import { parseClippings } from '../lib/clippings-parser.js';
 import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata, mergeSelectedBooks } from '../db/books.js';
 import {
     listHighlightsForBook,
@@ -14,6 +16,7 @@ import {
     listRecentHighlights,
     listRandomHighlights,
     listLeastRecentlySeen,
+    upsertHighlight,
 } from '../db/highlights.js';
 import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode, verifyPassword, setPassword } from '../db/auth.js';
 import { checkPasswordStrength, MIN_LENGTH } from '../lib/password-policy.js';
@@ -227,6 +230,57 @@ router.get('/search', (req, res) => {
     const q = req.query.q || '';
     const results = q.trim() ? search(q) : { books: [], highlights: [] };
     res.render('search', { q, results });
+});
+
+router.get('/import', (req, res) => {
+    res.render('import', { result: null, error: null });
+});
+
+// Klassiek Kindle "My Clippings"-formaat (ook gebruikt door CrossPoint/
+// CrossInk-devices) -- tekst wordt CLIENT-SIDE uit het geuploade bestand
+// gelezen (geen multer/multipart nodig, scheelt een dependency) en als
+// platte tekst gepost. express.text() i.p.v. het globale json/urlencoded-
+// limiet (100kb resp. 2mb) -- een jarenlang opgebouwd clippings-bestand kan
+// groter zijn.
+router.post('/import/clippings', express.text({ type: '*/*', limit: '10mb' }), (req, res) => {
+    const raw = req.body;
+    if (!raw || typeof raw !== 'string' || !raw.trim()) {
+        return res.render('import', { result: null, error: res.locals.t('import.error_empty') });
+    }
+    let clippings;
+    try {
+        clippings = parseClippings(raw);
+    } catch (e) {
+        return res.render('import', { result: null, error: res.locals.t('import.error_parse') });
+    }
+    if (clippings.length === 0) {
+        return res.render('import', { result: null, error: res.locals.t('import.error_no_highlights') });
+    }
+
+    let created = 0;
+    let updated = 0;
+    for (const c of clippings) {
+        // Stabiele source_id zodat hetzelfde bestand nogmaals uploaden geen
+        // duplicaten geeft -- upsertHighlight dedupt daarnaast ook nog op
+        // exacte tekst binnen het boek (zie db/highlights.js).
+        const sourceId = crypto
+            .createHash('sha256')
+            .update([c.title, c.author, c.location, c.addedAt?.getTime(), c.text].join('::'))
+            .digest('hex');
+        const { created: wasCreated } = upsertHighlight({
+            book: { title: c.title, author: c.author },
+            text: c.text,
+            location: c.location,
+            chapter: c.chapter,
+            source: 'kindle-clippings',
+            source_id: sourceId,
+            created_at: c.addedAt ? c.addedAt.getTime() : undefined,
+        });
+        if (wasCreated) created++;
+        else updated++;
+    }
+
+    res.render('import', { result: { total: clippings.length, created, updated }, error: null });
 });
 
 function accountLocals(req, res) {
