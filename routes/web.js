@@ -205,6 +205,24 @@ router.get('/api/discover', (req, res) => {
     res.json({ cards: toDiscoverCards(batch) });
 });
 
+// JSON-variant van /books/:id/highlights/:hid/edit, voor de reviewkaart
+// (client-rendered, geen paginaredirect zoals de boekpagina-versie -- de
+// gebruiker moet in de review-flow kunnen blijven na opslaan).
+router.post('/highlights/:id/edit', (req, res) => {
+    const h = getHighlight(req.params.id);
+    if (!h) return res.status(404).json({ error: 'not found' });
+    const { text, note } = req.body || {};
+    if (!text || !text.trim()) return res.status(400).json({ error: 'text required' });
+    updateHighlightText(h.id, { text: text.trim(), note: note?.trim() || null, color: h.color });
+    res.json({
+        ok: true,
+        text: text.trim(),
+        note: note?.trim() || null,
+        textHtml: renderInlineMarkdown(text.trim()),
+        noteHtml: note?.trim() ? renderInlineMarkdown(note.trim()) : null,
+    });
+});
+
 router.get('/highlights/:id/share.png', async (req, res) => {
     const h = getHighlight(req.params.id);
     if (!h) return res.status(404).end();

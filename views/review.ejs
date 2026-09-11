@@ -83,13 +83,16 @@
     // lib/markdown.js) so the client just drops them straight into
     // innerHTML below, no client-side escaping needed for those fields.
     const batch = <%- JSON.stringify(batch.map(h => ({
-        id: h.id, textHtml: md(h.text), noteHtml: h.note ? md(h.note) : null,
+        id: h.id, text: h.text, note: h.note || null,
+        textHtml: md(h.text), noteHtml: h.note ? md(h.note) : null,
         bookTitleHtml: md(h.book_title), bookAuthorHtml: h.book_author ? md(h.book_author) : null,
         book_id: h.book_id,
     }))).replace(/</g, '\\u003c') %>;
     const S = <%- JSON.stringify({
         doneHeading: t('review.done_heading'), doneBody: t('review.done_body'), back: t('review.back'),
         discardConfirm: t('review.discard_confirm'), shareTitle: t('review.share_title'), bookTitle: t('review.book_title'),
+        editTitle: t('review.edit_title'), editSave: t('book.save'), editCancel: t('book.cancel'),
+        editTextPlaceholder: t('book.text_placeholder'), editNotePlaceholder: t('book.note_placeholder'),
     }).replace(/</g, '\\u003c') %>;
     // Opened from a feed click (single highlight, ?from=feed): that's
     // browsing, not a review session -- skip the done-screen and the
@@ -102,6 +105,7 @@
     // rest of the UI.
     const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
     const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+    const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
     function esc(s) {
       const d = document.createElement('div');
@@ -143,13 +147,55 @@
         '<div class="card-icons">' +
         '<button title="' + esc(S.shareTitle) + '" id="btn-share">' + ICON_SHARE + '</button>' +
         '<button title="' + esc(S.bookTitle) + '" id="btn-book">' + ICON_BOOK + '</button>' +
+        '<button title="' + esc(S.editTitle) + '" id="btn-edit">' + ICON_EDIT + '</button>' +
         '</div>';
       card.style.transition = 'none';
       card.style.transform = '';
       card.style.opacity = '';
       document.getElementById('btn-book').onclick = () => location.href = '/books/' + h.book_id + '#highlight-' + h.id;
       document.getElementById('btn-share').onclick = () => location.href = '/highlights/' + h.id + '/share';
+      document.getElementById('btn-edit').onclick = () => enterEditMode(h);
       renderDots();
+    }
+
+    // Inline bewerken zonder de review-flow te verlaten -- vervangt tekst+
+    // notitie door invoervelden met de RUWE (niet-gerenderde) markdown-tekst,
+    // net als de boekpagina's edit-formulier. Opslaan gaat via een JSON-
+    // route (POST /highlights/:id/edit, zie routes/web.js) i.p.v. de
+    // paginaredirect-variant, zodat de kaart in beeld blijft.
+    function enterEditMode(h) {
+      const card = document.getElementById('card');
+      card.innerHTML =
+        '<div class="book-line">' + h.bookTitleHtml + (h.bookAuthorHtml ? ' — ' + h.bookAuthorHtml : '') + '</div>' +
+        '<textarea id="edit-text" rows="6" style="width:100%; font-family:Georgia, \'Times New Roman\', serif;" placeholder="' + esc(S.editTextPlaceholder) + '"></textarea>' +
+        '<textarea id="edit-note" rows="2" style="width:100%; margin-top:0.6em;" placeholder="' + esc(S.editNotePlaceholder) + '"></textarea>' +
+        '<div class="card-icons" style="justify-content:flex-end; gap:0.6em;">' +
+        '<button type="button" class="secondary" id="edit-cancel" style="width:auto; padding:0.5em 1em;">' + esc(S.editCancel) + '</button>' +
+        '<button type="button" id="edit-save" style="width:auto; padding:0.5em 1em;">' + esc(S.editSave) + '</button>' +
+        '</div>';
+      // .value (niet innerHTML) zet de tekst 1-op-1 zonder HTML-interpretatie
+      // -- geen escaping nodig, dit is precies waarom .value hier bewust
+      // gebruikt wordt i.p.v. de tekst in de HTML-string hierboven te weven.
+      document.getElementById('edit-text').value = h.text;
+      document.getElementById('edit-note').value = h.note || '';
+      document.getElementById('edit-cancel').onclick = () => renderCard();
+      document.getElementById('edit-save').onclick = async () => {
+        const text = document.getElementById('edit-text').value;
+        const note = document.getElementById('edit-note').value;
+        if (!text.trim()) return;
+        const res = await fetch('/highlights/' + h.id + '/edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, note }),
+        });
+        if (!res.ok) return;
+        const updated = await res.json();
+        h.text = updated.text;
+        h.note = updated.note;
+        h.textHtml = updated.textHtml;
+        h.noteHtml = updated.noteHtml;
+        renderCard();
+      };
     }
 
     // Swipe (either direction) on the card advances to the next highlight,

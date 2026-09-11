@@ -152,6 +152,7 @@
   "search.highlights_heading": "Highlights",
 
   "import.title": "Import",
+  "import.back": "Account",
   "import.clippings_heading": "Kindle clippings (My Clippings)",
   "import.clippings_help": "Upload a \"My Clippings\" file (Kindle format, also used by CrossPoint/CrossInk devices) to import highlights. Duplicate highlights (within the file and against what's already in ReadRepeat) are skipped automatically.",
   "import.submit": "Import",
@@ -201,5 +202,6 @@
   "review.next": "Next",
   "review.discard_confirm": "Never show this highlight in review again?",
   "review.share_title": "Share",
-  "review.book_title": "Go to book"
+  "review.book_title": "Go to book",
+  "review.edit_title": "Edit"
 }
