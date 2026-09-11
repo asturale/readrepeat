@@ -1,0 +1,58 @@
+<% var title = t('import.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <h1 class="page-title"><%= t('import.title') %></h1>
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('import.clippings_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('import.clippings_help') %></p>
+
+    <% if (error) { %><p style="color:var(--danger)"><%= error %></p><% } %>
+    <% if (result) { %>
+      <p style="color:var(--accent)"><%= t('import.result', { total: result.total, created: result.created, updated: result.updated }) %></p>
+    <% } %>
+
+    <form id="clippings-form" method="post" action="/import/clippings" style="display:flex; flex-direction:column; gap:0.6em; max-width:420px;">
+      <input type="file" id="clippings-file" accept=".txt,.bin,text/plain">
+      <button type="submit" id="clippings-submit" disabled><%= t('import.submit') %></button>
+    </form>
+  </div>
+</main>
+<script>
+  // Geen multer/multipart-parsing nodig op de server: het bestand wordt
+  // hier client-side als platte tekst ingelezen en als text/plain-body
+  // gepost (zie routes/web.js's express.text() op /import/clippings).
+  const fileInput = document.getElementById('clippings-file');
+  const form = document.getElementById('clippings-form');
+  const submitBtn = document.getElementById('clippings-submit');
+  let fileText = null;
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    submitBtn.disabled = true;
+    fileText = null;
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      fileText = reader.result;
+      submitBtn.disabled = false;
+    };
+    reader.readAsText(file);
+  });
+
+  form.addEventListener('submit', (e) => {
+    if (fileText === null) { e.preventDefault(); return; }
+    e.preventDefault();
+    fetch('/import/clippings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: fileText,
+    }).then((res) => res.text()).then((html) => {
+      document.open();
+      document.write(html);
+      document.close();
+    });
+  });
+</script>
+</body>
+</html>
