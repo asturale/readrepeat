@@ -152,6 +152,7 @@
   "search.highlights_heading": "Highlights",
 
   "import.title": "Importeren",
+  "import.back": "Account",
   "import.clippings_heading": "Kindle-clippings (My Clippings)",
   "import.clippings_help": "Upload een \"My Clippings\"-bestand (Kindle-formaat, ook gebruikt door CrossPoint/CrossInk-devices) om highlights te importeren. Dubbele highlights (binnen het bestand en tegen wat al in ReadRepeat staat) worden automatisch overgeslagen.",
   "import.submit": "Importeren",
@@ -201,5 +202,6 @@
   "review.next": "Volgende",
   "review.discard_confirm": "Deze highlight nooit meer in review tonen?",
   "review.share_title": "Delen",
-  "review.book_title": "Naar boek"
+  "review.book_title": "Naar boek",
+  "review.edit_title": "Bewerken"
 }
