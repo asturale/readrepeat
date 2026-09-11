@@ -94,6 +94,7 @@
   "account.language_save": "Save",
   "account.settings_link": "Settings",
   "account.about_link": "About ReadRepeat",
+  "account.import_link": "Import highlights",
   "about.title": "About ReadRepeat",
   "about.version": "Version",
   "about.stats": "{highlights} highlights in {books} books",
@@ -149,6 +150,15 @@
   "search.no_results": "Nothing found.",
   "search.books_heading": "Books",
   "search.highlights_heading": "Highlights",
+
+  "import.title": "Import",
+  "import.clippings_heading": "Kindle clippings (My Clippings)",
+  "import.clippings_help": "Upload a \"My Clippings\" file (Kindle format, also used by CrossPoint/CrossInk devices) to import highlights. Duplicate highlights (within the file and against what's already in ReadRepeat) are skipped automatically.",
+  "import.submit": "Import",
+  "import.result": "{total} highlights found -- {created} newly added, {updated} already known/updated.",
+  "import.error_empty": "No file or empty file uploaded.",
+  "import.error_parse": "Could not read this file as a clippings file.",
+  "import.error_no_highlights": "No highlights found in this file.",
 
   "share.title": "Share",
   "share.back": "Back to book",
