@@ -21,7 +21,7 @@ import { checkPasswordStrength, MIN_LENGTH } from '../lib/password-policy.js';
 import { logSessionDay, getStreak, getMonthCalendar } from '../db/streak.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
 import { saveSubscription, removeSubscription, hasSubscription, listSubscriptions, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
-import { setApiKey, getApiKey, setProvider, getProvider, configuredProviders, PROVIDERS, listRecommendations, generateRecommendations, generateRecommendationsForBook } from '../db/recommendations.js';
+import { setApiKey, getApiKey, setProvider, getProvider, configuredProviders, PROVIDERS, listRecommendations, generateRecommendations, generateRecommendationsForBook, generateRecommendationsForTopic } from '../db/recommendations.js';
 import { setTelegramChatId, setTelegramDigest } from '../db/telegram.js';
 import { telegramDigestConfigured, sendTelegramTest } from '../lib/telegram-digest.js';
 import { sendToSubscription } from '../lib/push.js';
@@ -466,6 +466,22 @@ router.post('/recommendations/generate', async (req, res) => {
         res.redirect('/recommendations');
     } catch (e) {
         const known = ['no_api_key', 'no_books', 'empty_response'].includes(e.message) ? e.message : 'generate_failed';
+        res.render('recommendations', {
+            history: listRecommendations(req.session.userId),
+            hasKey: configuredProviders(req.session.userId).length > 0,
+            activeProvider: getProvider(req.session.userId),
+            error: known,
+            generating: false,
+        });
+    }
+});
+
+router.post('/recommendations/generate-topic', async (req, res) => {
+    try {
+        await generateRecommendationsForTopic(req.session.userId, req.body.topic);
+        res.redirect('/recommendations');
+    } catch (e) {
+        const known = ['no_api_key', 'no_books', 'no_topic', 'empty_response'].includes(e.message) ? e.message : 'generate_failed';
         res.render('recommendations', {
             history: listRecommendations(req.session.userId),
             hasKey: configuredProviders(req.session.userId).length > 0,

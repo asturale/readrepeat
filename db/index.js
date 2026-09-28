@@ -164,6 +164,10 @@ CREATE TABLE IF NOT EXISTS recommendations (
 // CASCADE -- de aanbeveling zelf blijft geldig/leesbaar als het bronboek
 // later verwijderd wordt, alleen de boek-link verdwijnt dan.
 ensureColumn('recommendations', 'book_id', 'book_id INTEGER REFERENCES books(id) ON DELETE SET NULL');
+// Losstaand van book_id: gezet wanneer de gebruiker een vrij-tekst-onderwerp
+// opgaf ("aanbevelingen over X, passend bij mijn leessmaak") i.p.v. de hele
+// bibliotheek of 1 specifiek boek als bron.
+ensureColumn('recommendations', 'topic', 'topic TEXT');
 
 export function userCount() {
     return db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
