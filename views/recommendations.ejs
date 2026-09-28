@@ -1,0 +1,53 @@
+<% var title = t('recommendations.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<main>
+  <p><a href="/account">&larr; <%= t('recommendations.back') %></a></p>
+  <h1 class="page-title"><%= t('recommendations.title') %></h1>
+  <p class="page-sub"><%= t('recommendations.intro') %></p>
+
+  <% if (!hasKey) { %>
+  <div class="card">
+    <p><%= t('recommendations.no_key') %> <a href="/account/settings"><%= t('recommendations.no_key_link') %></a>.</p>
+  </div>
+  <% } else { %>
+  <div class="card">
+    <p style="color:var(--text-dim); font-size:0.9em;"><%= t('recommendations.using_provider', { provider: AI_PROVIDER_NAMES[activeProvider] }) %></p>
+    <% if (error === 'no_books') { %><p style="color:var(--danger)"><%= t('recommendations.error_no_books') %></p><% } %>
+    <% if (error === 'empty_response' || error === 'generate_failed') { %><p style="color:var(--danger)"><%= t('recommendations.error_failed') %></p><% } %>
+    <form method="post" action="/recommendations/generate" id="gen-form">
+      <button type="submit" id="gen-btn"><%= t('recommendations.generate') %></button>
+    </form>
+  </div>
+  <% } %>
+
+  <% if (history.length === 0) { %>
+  <div class="empty-state card">
+    <p style="color:var(--text-dim)"><%= t('recommendations.empty') %></p>
+  </div>
+  <% } else { %>
+  <% history.forEach(function(r) { %>
+  <div class="card">
+    <p style="color:var(--text-faint); font-size:0.8em; margin-top:0;">
+      <%= new Date(r.created_at).toLocaleString(dateLocale) %>
+      <% if (r.book_title) { %>&middot; <%= t('recommendations.based_on_book', { title: r.book_title }) %><% } %>
+    </p>
+    <%- mdBlock(r.content) %>
+  </div>
+  <% }) %>
+  <% } %>
+</main>
+<script>
+  // Duidelijk maken dat het even duurt (echte API-call) -- zonder dit oogt
+  // de knop bevroren tot de POST-redirect terugkomt.
+  const form = document.getElementById('gen-form');
+  if (form) {
+    form.addEventListener('submit', () => {
+      const btn = document.getElementById('gen-btn');
+      btn.disabled = true;
+      btn.textContent = <%- JSON.stringify(t('recommendations.generating')) %>;
+    });
+  }
+</script>
+</body>
+</html>

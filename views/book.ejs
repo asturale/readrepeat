@@ -35,6 +35,12 @@
       <form method="post" action="/books/<%= book.id %>/delete" style="margin-top:0.8em" onsubmit="return confirm('<%= t('book.delete_book_confirm') %>')">
         <button type="submit" class="danger"><%= t('book.delete_book') %></button>
       </form>
+      <% if (hasAiKey) { %>
+      <form method="post" action="/books/<%= book.id %>/recommend" style="margin-top:0.8em">
+        <button type="submit" class="secondary">✨ <%= t('book.recommend_button') %></button>
+      </form>
+      <% if (recError) { %><p style="color:var(--danger); font-size:0.9em; margin-top:0.4em;"><%= t(`book.recommend_error_${recError}`) %></p><% } %>
+      <% } %>
     </div>
   </div>
 
