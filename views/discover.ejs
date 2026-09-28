@@ -34,7 +34,11 @@
   // Same escape-the-closing-script-tag guard as review.ejs's inline batch
   // (see that file's comment for why -- never spell the raw sequence out
   // here either).
-  const S = <%- JSON.stringify({ shareTitle: t('review.share_title'), bookTitle: t('review.book_title') }).replace(/</g, '\\u003c') %>;
+  const S = <%- JSON.stringify({
+      shareTitle: t('review.share_title'), bookTitle: t('review.book_title'),
+      editTitle: t('review.edit_title'), editSave: t('book.save'), editCancel: t('book.cancel'),
+      editTextPlaceholder: t('book.text_placeholder'), editNotePlaceholder: t('book.note_placeholder'),
+  }).replace(/</g, '\\u003c') %>;
   let cards = <%- JSON.stringify(initialCards).replace(/</g, '\\u003c') %>;
   const seen = new Set();
   let loading = false;
@@ -42,6 +46,7 @@
 
   const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
   const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+  const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
   function esc(s) {
     const d = document.createElement('div');
@@ -82,10 +87,7 @@
     if (entries[0].isIntersecting) loadMore();
   }, { rootMargin: '400px' }) : null;
 
-  function renderCard(c) {
-    const el = document.createElement('div');
-    el.className = 'discover-card';
-    el.dataset.id = c.id;
+  function fillCard(el, c) {
     el.innerHTML =
       '<div class="book-line-row">' +
       (c.coverUrl ? '<img class="discover-cover" src="' + esc(c.coverUrl) + '" alt="">' : '') +
@@ -96,11 +98,57 @@
       '<div class="card-icons">' +
       '<button title="' + esc(S.shareTitle) + '" data-act="share">' + ICON_SHARE + '</button>' +
       '<button title="' + esc(S.bookTitle) + '" data-act="book">' + ICON_BOOK + '</button>' +
+      '<button title="' + esc(S.editTitle) + '" data-act="edit">' + ICON_EDIT + '</button>' +
       '</div>';
     el.querySelector('[data-act=share]').onclick = () => location.href = '/highlights/' + c.id + '/share';
     el.querySelector('[data-act=book]').onclick = () => location.href = '/books/' + c.book_id + '#highlight-' + c.id;
+    el.querySelector('[data-act=edit]').onclick = () => enterEditMode(el, c);
+  }
+
+  function renderCard(c) {
+    const el = document.createElement('div');
+    el.className = 'discover-card';
+    el.dataset.id = c.id;
+    fillCard(el, c);
     feed.appendChild(el);
     if (seenObserver) seenObserver.observe(el);
+  }
+
+  // Zelfde inline-bewerken als review.ejs (zie die comment voor de
+  // redenering), hier per kaart i.p.v. één globale #card -- de discover-feed
+  // toont immers meerdere kaarten tegelijk.
+  function enterEditMode(el, c) {
+    el.innerHTML =
+      '<div class="book-line-row">' +
+      (c.coverUrl ? '<img class="discover-cover" src="' + esc(c.coverUrl) + '" alt="">' : '') +
+      '<div class="book-line">' + c.bookTitleHtml + (c.bookAuthorHtml ? ' — ' + c.bookAuthorHtml : '') + '</div>' +
+      '</div>' +
+      '<textarea class="edit-text" rows="6" style="width:100%; font-family:Georgia, \'Times New Roman\', serif;" placeholder="' + esc(S.editTextPlaceholder) + '"></textarea>' +
+      '<textarea class="edit-note" rows="2" style="width:100%; margin-top:0.6em;" placeholder="' + esc(S.editNotePlaceholder) + '"></textarea>' +
+      '<div class="card-icons" style="justify-content:flex-end; gap:0.6em;">' +
+      '<button type="button" class="secondary" data-act="cancel" style="width:auto; padding:0.5em 1em;">' + esc(S.editCancel) + '</button>' +
+      '<button type="button" data-act="save" style="width:auto; padding:0.5em 1em;">' + esc(S.editSave) + '</button>' +
+      '</div>';
+    el.querySelector('.edit-text').value = c.text;
+    el.querySelector('.edit-note').value = c.note || '';
+    el.querySelector('[data-act=cancel]').onclick = () => fillCard(el, c);
+    el.querySelector('[data-act=save]').onclick = async () => {
+      const text = el.querySelector('.edit-text').value;
+      const note = el.querySelector('.edit-note').value;
+      if (!text.trim()) return;
+      const res = await fetch('/highlights/' + c.id + '/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, note }),
+      });
+      if (!res.ok) return;
+      const updated = await res.json();
+      c.text = updated.text;
+      c.note = updated.note;
+      c.textHtml = updated.textHtml;
+      c.noteHtml = updated.noteHtml;
+      fillCard(el, c);
+    };
   }
 
   async function loadMore() {

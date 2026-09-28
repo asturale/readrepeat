@@ -134,6 +134,36 @@ ensureColumn('users', 'last_session_completed_at', 'last_session_completed_at IN
 // Dashboard "Feed" sort choice, remembered across visits -- 'recent' |
 // 'random' | 'oldest'.
 ensureColumn('users', 'feed_mode', "feed_mode TEXT NOT NULL DEFAULT 'recent'");
+// BYOK for the AI book-recommendation feature (see db/recommendations.js) --
+// stored per-user, never sent anywhere except straight to the matching
+// provider's own API. One key column per provider (so switching providers
+// doesn't lose a previously-entered key) plus which one is currently active.
+ensureColumn('users', 'deepseek_api_key', 'deepseek_api_key TEXT');
+ensureColumn('users', 'openai_api_key', 'openai_api_key TEXT');
+ensureColumn('users', 'anthropic_api_key', 'anthropic_api_key TEXT');
+ensureColumn('users', 'ai_provider', "ai_provider TEXT NOT NULL DEFAULT 'deepseek'");
+// Telegram daily digest -- the bot TOKEN is install-wide (TELEGRAM_BOT_TOKEN
+// env var, shared by every user of this install, see lib/telegram-digest.js),
+// but WHERE to send is per-user (their own chat with that bot).
+ensureColumn('users', 'telegram_chat_id', 'telegram_chat_id TEXT');
+ensureColumn('users', 'telegram_digest_enabled', 'telegram_digest_enabled INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users', 'telegram_digest_hour', 'telegram_digest_hour INTEGER NOT NULL DEFAULT 8');
+ensureColumn('users', 'telegram_digest_count', 'telegram_digest_count INTEGER NOT NULL DEFAULT 5');
+ensureColumn('users', 'last_telegram_digest_at', 'last_telegram_digest_at INTEGER');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS recommendations (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content    TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+`);
+// NULL = obv de hele bibliotheek (bestaand gedrag); gezet = obv 1 specifiek
+// boek (per-boek "Aanbevelingen obv dit boek"-knop). ON DELETE SET NULL, niet
+// CASCADE -- de aanbeveling zelf blijft geldig/leesbaar als het bronboek
+// later verwijderd wordt, alleen de boek-link verdwijnt dan.
+ensureColumn('recommendations', 'book_id', 'book_id INTEGER REFERENCES books(id) ON DELETE SET NULL');
 
 export function userCount() {
     return db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
