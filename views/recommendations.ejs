@@ -14,9 +14,15 @@
   <div class="card">
     <p style="color:var(--text-dim); font-size:0.9em;"><%= t('recommendations.using_provider', { provider: AI_PROVIDER_NAMES[activeProvider] }) %></p>
     <% if (error === 'no_books') { %><p style="color:var(--danger)"><%= t('recommendations.error_no_books') %></p><% } %>
+    <% if (error === 'no_topic') { %><p style="color:var(--danger)"><%= t('recommendations.error_no_topic') %></p><% } %>
     <% if (error === 'empty_response' || error === 'generate_failed') { %><p style="color:var(--danger)"><%= t('recommendations.error_failed') %></p><% } %>
     <form method="post" action="/recommendations/generate" id="gen-form">
       <button type="submit" id="gen-btn"><%= t('recommendations.generate') %></button>
+    </form>
+
+    <form method="post" action="/recommendations/generate-topic" id="topic-form" style="display:flex; gap:0.6em; flex-wrap:wrap; margin-top:1em;">
+      <input type="text" name="topic" placeholder="<%= t('recommendations.topic_placeholder') %>" maxlength="200" required style="flex:1; min-width:220px;">
+      <button type="submit" id="topic-btn"><%= t('recommendations.topic_generate') %></button>
     </form>
   </div>
   <% } %>
@@ -31,6 +37,7 @@
     <p style="color:var(--text-faint); font-size:0.8em; margin-top:0;">
       <%= new Date(r.created_at).toLocaleString(dateLocale) %>
       <% if (r.book_title) { %>&middot; <%= t('recommendations.based_on_book', { title: r.book_title }) %><% } %>
+      <% if (r.topic) { %>&middot; <%= t('recommendations.based_on_topic', { topic: r.topic }) %><% } %>
     </p>
     <%- mdBlock(r.content) %>
   </div>
@@ -44,6 +51,14 @@
   if (form) {
     form.addEventListener('submit', () => {
       const btn = document.getElementById('gen-btn');
+      btn.disabled = true;
+      btn.textContent = <%- JSON.stringify(t('recommendations.generating')) %>;
+    });
+  }
+  const topicForm = document.getElementById('topic-form');
+  if (topicForm) {
+    topicForm.addEventListener('submit', () => {
+      const btn = document.getElementById('topic-btn');
       btn.disabled = true;
       btn.textContent = <%- JSON.stringify(t('recommendations.generating')) %>;
     });

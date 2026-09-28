@@ -45,8 +45,8 @@ export function listRecommendations(userId) {
         .all(userId);
 }
 
-function saveRecommendation(userId, content, bookId = null) {
-    db.prepare('INSERT INTO recommendations (user_id, content, book_id, created_at) VALUES (?, ?, ?, ?)').run(userId, content, bookId, Date.now());
+function saveRecommendation(userId, content, { bookId = null, topic = null } = {}) {
+    db.prepare('INSERT INTO recommendations (user_id, content, book_id, topic, created_at) VALUES (?, ?, ?, ?, ?)').run(userId, content, bookId, topic, Date.now());
 }
 
 // Boeken/highlights zijn niet per-user gescoped in dit schema (zie
@@ -101,6 +101,22 @@ function buildBookPrompt({ book, highlights }) {
     return (
         `Ik heb net "${book.title}"${book.author ? ` van ${book.author}` : ''} gelezen. Dit zijn de fragmenten die ik erin heb onderstreept:\n${highlightList || '(geen highlights)'}\n\n` +
         `Op basis hiervan: welke ~5 boeken zou je me aanraden om hierna te lezen, die aansluiten bij wat me in dit specifieke boek raakte? Voor elk boek: titel, auteur, en 1-2 zinnen waarom het aansluit bij deze highlights. Antwoord in het Nederlands, gebruik markdown (bv. **titel** per aanbeveling).`
+    );
+}
+
+const MAX_TOPIC_LENGTH = 200;
+
+function buildTopicPrompt({ books, recentHighlights }, topic) {
+    const bookList = books.map((b) => `- ${b.title}${b.author ? ` (${b.author})` : ''} [${b.highlight_count} highlights]`).join('\n');
+    const highlightList = recentHighlights
+        .map((h) => `- "${h.text.slice(0, 300)}" -- uit "${h.book_title}"${h.book_author ? ` (${h.book_author})` : ''}`)
+        .join('\n');
+
+    return (
+        `Ik wil boeken over dit onderwerp: "${topic}".\n\n` +
+        `Ter context, dit is mijn boekenlijst (alle boeken die ik ooit gelezen/gearceerd heb), zodat je rekening houdt met mijn leessmaak/niveau:\n${bookList}\n\n` +
+        `En dit zijn mijn highlights van de laatste ${RECENT_MONTHS} maanden:\n${highlightList || '(geen recente highlights)'}\n\n` +
+        `Op basis hiervan: welke ~5 boeken over "${topic}" zou je me aanraden, die passen bij mijn leessmaak? Voor elk boek: titel, auteur, en 1-2 zinnen waarom het aansluit bij zowel het onderwerp als mijn smaak. Vermijd boeken die al in mijn lijst staan. Antwoord in het Nederlands, gebruik markdown (bv. **titel** per aanbeveling).`
     );
 }
 
@@ -193,6 +209,24 @@ export async function generateRecommendationsForBook(userId, bookId) {
     const content = await CALL_PROVIDER[provider](apiKey, buildBookPrompt(context));
     if (!content) throw new Error('empty_response');
 
-    saveRecommendation(userId, content, bookId);
+    saveRecommendation(userId, content, { bookId });
+    return content;
+}
+
+export async function generateRecommendationsForTopic(userId, topic) {
+    const trimmed = (topic || '').trim().slice(0, MAX_TOPIC_LENGTH);
+    if (!trimmed) throw new Error('no_topic');
+
+    const provider = getProvider(userId);
+    const apiKey = getApiKey(userId, provider);
+    if (!apiKey) throw new Error('no_api_key');
+
+    const context = gatherContext();
+    if (context.books.length === 0) throw new Error('no_books');
+
+    const content = await CALL_PROVIDER[provider](apiKey, buildTopicPrompt(context, trimmed));
+    if (!content) throw new Error('empty_response');
+
+    saveRecommendation(userId, content, { topic: trimmed });
     return content;
 }
