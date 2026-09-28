@@ -6,11 +6,15 @@ import './db/index.js';
 import { SqliteSessionStore } from './db/session-store.js';
 import { findUserById } from './db/auth.js';
 import { detectLocale, translator, dateLocale, SUPPORTED_LOCALES } from './lib/i18n.js';
-import { renderInlineMarkdown } from './lib/markdown.js';
+import { renderInlineMarkdown, renderBlockMarkdown } from './lib/markdown.js';
+import { PROVIDER_NAMES } from './db/recommendations.js';
 import { startReminderScheduler } from './lib/reminder-scheduler.js';
+import { startTelegramDigestScheduler } from './lib/telegram-digest-scheduler.js';
+import { startTelegramPoller } from './lib/telegram-poller.js';
 import authRoutes from './routes/auth.js';
 import webRoutes from './routes/web.js';
 import apiRoutes from './routes/api.js';
+import telegramRoutes from './routes/telegram.js';
 
 const app = express();
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
@@ -58,10 +62,13 @@ app.use((req, res, next) => {
     res.locals.SUPPORTED_LOCALES = SUPPORTED_LOCALES;
     res.locals.textScale = textScale;
     res.locals.md = renderInlineMarkdown;
+    res.locals.mdBlock = renderBlockMarkdown;
+    res.locals.AI_PROVIDER_NAMES = PROVIDER_NAMES;
     next();
 });
 
 app.use('/api', apiRoutes);
+app.use('/telegram', telegramRoutes);
 app.use('/', authRoutes);
 app.use('/', webRoutes);
 
@@ -70,3 +77,5 @@ app.use((req, res) => res.status(404).render('404'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`readrepeat listening on :${PORT}`));
 startReminderScheduler();
+startTelegramDigestScheduler();
+startTelegramPoller();

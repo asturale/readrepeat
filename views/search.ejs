@@ -20,7 +20,7 @@
   <div class="book-grid" style="margin-bottom:2em;">
     <% results.books.forEach(function(b) { %>
     <div class="book-card">
-      <% if (results.books.length > 1) { %><input type="checkbox" class="book-select" value="<%= b.id %>" title="<%= t('books.select_for_merge') %>"><% } %>
+      <% if (results.books.length > 1) { %><input type="checkbox" class="book-select" value="<%= b.id %>" title="<%= t('books.select_for_merge') %>"><input type="radio" name="survivor" class="book-survivor" value="<%= b.id %>" title="<%= t('books.keep_this_metadata') %>"><% } %>
       <a href="/books/<%= b.id %>">
         <% if (b.cover_url) { %>
           <img class="book-cover" src="<%= b.cover_url %>" alt="">
@@ -57,9 +57,14 @@
   // nested) so they don't fight the card's own click-to-navigate.
   const mergeBtn = document.getElementById('merge-books-btn');
   const boxes = () => [...document.querySelectorAll('.book-select')];
+  const radios = () => [...document.querySelectorAll('.book-survivor')];
   if (mergeBtn) {
     boxes().forEach((box) => box.addEventListener('change', () => {
       mergeBtn.disabled = boxes().filter((b) => b.checked).length < 2;
+      if (!box.checked) {
+        const r = radios().find((rr) => rr.value === box.value);
+        if (r) r.checked = false;
+      }
     }));
     mergeBtn.onclick = () => {
       const ids = boxes().filter((b) => b.checked).map((b) => b.value);
@@ -68,6 +73,14 @@
       const form = document.createElement('form');
       form.method = 'post';
       form.action = '/books/merge';
+      const survivor = radios().find((r) => r.checked && ids.includes(r.value));
+      if (survivor) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'survivor_id';
+        input.value = survivor.value;
+        form.appendChild(input);
+      }
       for (const id of ids) {
         const input = document.createElement('input');
         input.type = 'hidden';

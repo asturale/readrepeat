@@ -1,9 +1,8 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import { requireLogin } from './middleware.js';
-import { parseClippings } from '../lib/clippings-parser.js';
+import { importClippingsText } from '../lib/import-clippings.js';
 import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata, mergeSelectedBooks } from '../db/books.js';
 import {
     listHighlightsForBook,
@@ -16,18 +15,22 @@ import {
     listRecentHighlights,
     listRandomHighlights,
     listLeastRecentlySeen,
-    upsertHighlight,
 } from '../db/highlights.js';
 import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode, verifyPassword, setPassword } from '../db/auth.js';
 import { checkPasswordStrength, MIN_LENGTH } from '../lib/password-policy.js';
 import { logSessionDay, getStreak, getMonthCalendar } from '../db/streak.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
-import { saveSubscription, removeSubscription, hasSubscription, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
+import { saveSubscription, removeSubscription, hasSubscription, listSubscriptions, setReviewBatchSize, setReminderFrequency, setReminderHour, setTextScale } from '../db/push.js';
+import { setApiKey, getApiKey, setProvider, getProvider, configuredProviders, PROVIDERS, listRecommendations, generateRecommendations, generateRecommendationsForBook } from '../db/recommendations.js';
+import { setTelegramChatId, setTelegramDigest } from '../db/telegram.js';
+import { telegramDigestConfigured, sendTelegramTest } from '../lib/telegram-digest.js';
+import { sendToSubscription } from '../lib/push.js';
 import { VAPID_PUBLIC } from '../lib/push.js';
 import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, previewFromBatch, getHighlightsByIds, getDiscoverBatch } from '../db/reviews.js';
 import { renderShareImage } from '../lib/share-image.js';
 import { stripMarkdown, renderInlineMarkdown } from '../lib/markdown.js';
 import { search } from '../db/search.js';
+import { buildGdprExport } from '../db/export.js';
 
 const pkg = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'package.json'), 'utf8'));
 
@@ -79,7 +82,8 @@ router.post('/books/merge', (req, res) => {
     let ids = req.body.ids || [];
     if (!Array.isArray(ids)) ids = [ids];
     ids = ids.map(Number).filter(Boolean);
-    mergeSelectedBooks(ids);
+    const survivorId = req.body.survivor_id ? Number(req.body.survivor_id) : null;
+    mergeSelectedBooks(ids, survivorId);
     res.redirect('/books');
 });
 
@@ -87,7 +91,25 @@ router.get('/books/:id', (req, res) => {
     const book = getBook(req.params.id);
     if (!book) return res.status(404).render('404');
     const highlights = listHighlightsForBook(book.id).map((h) => ({ ...h, in_review: isInReview(h.id) }));
-    res.render('book', { book, highlights, editId: req.query.edit ? Number(req.query.edit) : null });
+    res.render('book', {
+        book,
+        highlights,
+        editId: req.query.edit ? Number(req.query.edit) : null,
+        hasAiKey: configuredProviders(req.session.userId).length > 0,
+        recError: req.query.rec_error || null,
+    });
+});
+
+router.post('/books/:id/recommend', async (req, res) => {
+    const book = getBook(req.params.id);
+    if (!book) return res.status(404).render('404');
+    try {
+        await generateRecommendationsForBook(req.session.userId, book.id);
+        res.redirect('/recommendations');
+    } catch (e) {
+        const known = ['no_api_key', 'no_highlights', 'empty_response'].includes(e.message) ? e.message : 'generate_failed';
+        res.redirect(`/books/${book.id}?rec_error=${known}`);
+    }
 });
 
 router.post('/books/:id/delete', (req, res) => {
@@ -186,6 +208,10 @@ function toDiscoverCards(batch) {
     return batch.map((h) => ({
         id: h.id,
         book_id: h.book_id,
+        // Ruwe tekst/notitie erbij (naast de al-gerenderde *Html-velden) --
+        // nodig om de edit-textarea's te vullen, net als review.ejs doet.
+        text: h.text,
+        note: h.note || null,
         textHtml: renderInlineMarkdown(h.text),
         noteHtml: h.note ? renderInlineMarkdown(h.note) : null,
         bookTitleHtml: renderInlineMarkdown(h.book_title),
@@ -261,44 +287,9 @@ router.get('/import', (req, res) => {
 // limiet (100kb resp. 2mb) -- een jarenlang opgebouwd clippings-bestand kan
 // groter zijn.
 router.post('/import/clippings', express.text({ type: '*/*', limit: '10mb' }), (req, res) => {
-    const raw = req.body;
-    if (!raw || typeof raw !== 'string' || !raw.trim()) {
-        return res.render('import', { result: null, error: res.locals.t('import.error_empty') });
-    }
-    let clippings;
-    try {
-        clippings = parseClippings(raw);
-    } catch (e) {
-        return res.render('import', { result: null, error: res.locals.t('import.error_parse') });
-    }
-    if (clippings.length === 0) {
-        return res.render('import', { result: null, error: res.locals.t('import.error_no_highlights') });
-    }
-
-    let created = 0;
-    let updated = 0;
-    for (const c of clippings) {
-        // Stabiele source_id zodat hetzelfde bestand nogmaals uploaden geen
-        // duplicaten geeft -- upsertHighlight dedupt daarnaast ook nog op
-        // exacte tekst binnen het boek (zie db/highlights.js).
-        const sourceId = crypto
-            .createHash('sha256')
-            .update([c.title, c.author, c.location, c.addedAt?.getTime(), c.text].join('::'))
-            .digest('hex');
-        const { created: wasCreated } = upsertHighlight({
-            book: { title: c.title, author: c.author },
-            text: c.text,
-            location: c.location,
-            chapter: c.chapter,
-            source: 'kindle-clippings',
-            source_id: sourceId,
-            created_at: c.addedAt ? c.addedAt.getTime() : undefined,
-        });
-        if (wasCreated) created++;
-        else updated++;
-    }
-
-    res.render('import', { result: { total: clippings.length, created, updated }, error: null });
+    const { error, result } = importClippingsText(req.body);
+    if (error) return res.render('import', { result: null, error: res.locals.t(`import.error_${error}`) });
+    res.render('import', { result, error: null });
 });
 
 function accountLocals(req, res) {
@@ -327,6 +318,14 @@ function settingsLocals(req, extra) {
         storedLocale: user.locale,
         passwordError: null,
         passwordSuccess: false,
+        aiProviders: PROVIDERS,
+        aiProvider: getProvider(user.id),
+        configuredProviders: configuredProviders(user.id),
+        telegramDigestConfigured,
+        telegramChatId: user.telegram_chat_id,
+        telegramDigestEnabled: !!user.telegram_digest_enabled,
+        telegramDigestHour: user.telegram_digest_hour,
+        telegramDigestCount: user.telegram_digest_count,
         ...extra,
     };
 }
@@ -375,6 +374,17 @@ router.get('/account/settings', (req, res) => {
     res.render('settings', settingsLocals(req));
 });
 
+// GDPR-dataexport (Art. 20) -- alles wat de app over deze gebruiker heeft,
+// als downloadbaar JSON-bestand. Geen wachtwoord-hash/API-tokens/BYOK-keys
+// erin (zie db/export.js's eigen toelichting).
+router.get('/account/export', (req, res) => {
+    const data = buildGdprExport(req.session.userId);
+    const filename = `readrepeat-export-${new Date().toISOString().slice(0, 10)}.json`;
+    res.set('Content-Type', 'application/json');
+    res.set('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify(data, null, 2));
+});
+
 router.post('/account/settings/review-batch-size', (req, res) => {
     setReviewBatchSize(req.session.userId, req.body.size);
     res.redirect('/account/settings');
@@ -390,9 +400,80 @@ router.post('/account/settings/reminder-hour', (req, res) => {
     res.redirect('/account/settings');
 });
 
+router.post('/account/settings/telegram-chat-id', (req, res) => {
+    setTelegramChatId(req.session.userId, req.body.telegram_chat_id || null);
+    res.redirect('/account/settings');
+});
+
+router.post('/account/settings/telegram-digest', (req, res) => {
+    setTelegramDigest(req.session.userId, {
+        enabled: req.body.enabled === 'on',
+        hour: req.body.hour,
+        count: req.body.count,
+    });
+    res.redirect('/account/settings');
+});
+
+router.post('/account/settings/telegram-test', async (req, res) => {
+    const user = findUserById(req.session.userId);
+    if (!user.telegram_chat_id) return res.status(400).json({ ok: false, error: res.locals.t('settings.telegram_test_no_chat_id') });
+    try {
+        await sendTelegramTest(user.telegram_chat_id);
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(502).json({ ok: false, error: res.locals.t('settings.telegram_test_failed') });
+    }
+});
+
+router.post('/account/settings/push-test', async (req, res) => {
+    const subs = listSubscriptions(req.session.userId);
+    if (subs.length === 0) return res.status(400).json({ ok: false, error: res.locals.t('settings.push_test_no_sub') });
+    const payload = { title: 'ReadRepeat', body: res.locals.t('settings.push_test_body'), url: '/' };
+    const results = await Promise.all(subs.map((sub) => sendToSubscription(sub, payload)));
+    if (results.some(Boolean)) res.json({ ok: true });
+    else res.status(502).json({ ok: false, error: res.locals.t('settings.push_test_failed') });
+});
+
 router.post('/account/settings/text-scale', (req, res) => {
     setTextScale(req.session.userId, req.body.scale);
     res.redirect('/account/settings');
+});
+
+router.post('/account/settings/ai-key', (req, res) => {
+    const { provider, api_key } = req.body;
+    if (PROVIDERS.includes(provider)) setApiKey(req.session.userId, provider, api_key || null);
+    res.redirect('/account/settings');
+});
+
+router.post('/account/settings/ai-provider', (req, res) => {
+    setProvider(req.session.userId, req.body.provider);
+    res.redirect('/account/settings');
+});
+
+router.get('/recommendations', (req, res) => {
+    res.render('recommendations', {
+        history: listRecommendations(req.session.userId),
+        hasKey: configuredProviders(req.session.userId).length > 0,
+        activeProvider: getProvider(req.session.userId),
+        error: null,
+        generating: false,
+    });
+});
+
+router.post('/recommendations/generate', async (req, res) => {
+    try {
+        await generateRecommendations(req.session.userId);
+        res.redirect('/recommendations');
+    } catch (e) {
+        const known = ['no_api_key', 'no_books', 'empty_response'].includes(e.message) ? e.message : 'generate_failed';
+        res.render('recommendations', {
+            history: listRecommendations(req.session.userId),
+            hasKey: configuredProviders(req.session.userId).length > 0,
+            activeProvider: getProvider(req.session.userId),
+            error: known,
+            generating: false,
+        });
+    }
 });
 
 router.post('/account/push-subscribe', (req, res) => {

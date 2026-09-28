@@ -162,22 +162,31 @@ export function dedupeHighlightsInBook(bookId) {
     return removed;
 }
 
-// UI-facing "merge these N selected books" action: picks whichever has the
-// most highlights as the survivor (most likely to be the complete/canonical
-// one, same heuristic used for the original Buddha-book duplicate fix),
-// merges the rest into it, then dedupes -- a merge routinely creates fresh
-// text-identical duplicates (the same highlight existed in more than one of
-// the merged books), so this always needs to run right after.
-export function mergeSelectedBooks(ids) {
+// UI-facing "merge these N selected books" action. If the user picked a
+// survivor explicitly (`preferredSurvivorId`, from the radio button in the
+// merge UI), that one's metadata (title/author/cover) is kept. Otherwise
+// falls back to whichever has the most highlights (most likely to be the
+// complete/canonical one, same heuristic used for the original Buddha-book
+// duplicate fix). Merges the rest into the survivor, then dedupes -- a
+// merge routinely creates fresh text-identical duplicates (the same
+// highlight existed in more than one of the merged books), so this always
+// needs to run right after.
+export function mergeSelectedBooks(ids, preferredSurvivorId = null) {
     if (ids.length < 2) return null;
     const withCounts = ids
         .map((id) => ({ id, count: db.prepare('SELECT COUNT(*) AS n FROM highlights WHERE book_id = ?').get(id).n }))
         .filter((b) => getBook(b.id));
     if (withCounts.length < 2) return null;
-    withCounts.sort((a, b) => b.count - a.count);
-    const survivorId = withCounts[0].id;
-    for (const b of withCounts.slice(1)) {
-        mergeBooks(survivorId, b.id);
+
+    let survivorId;
+    if (preferredSurvivorId != null && withCounts.some((b) => b.id === Number(preferredSurvivorId))) {
+        survivorId = Number(preferredSurvivorId);
+    } else {
+        withCounts.sort((a, b) => b.count - a.count);
+        survivorId = withCounts[0].id;
+    }
+    for (const b of withCounts) {
+        if (b.id !== survivorId) mergeBooks(survivorId, b.id);
     }
     dedupeHighlightsInBook(survivorId);
     return survivorId;

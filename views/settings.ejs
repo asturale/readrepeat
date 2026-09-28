@@ -100,9 +100,75 @@
     </form>
 
     <div id="push-status" style="margin-top:1.2em; font-size:0.9em; color:var(--text-dim);"></div>
-    <p style="margin-top:0.8em;">
+    <p style="margin-top:0.8em; display:flex; gap:0.6em; align-items:center; flex-wrap:wrap;">
       <button type="button" id="push-toggle" class="secondary"></button>
+      <button type="button" id="push-test-btn" class="secondary" style="display:none;"><%= t('settings.push_test') %></button>
+      <span id="push-test-result" style="font-size:0.85em;"></span>
     </p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('settings.telegram_heading') %></h2>
+    <% if (!telegramDigestConfigured) { %>
+    <p style="color:var(--text-dim)"><%= t('settings.telegram_not_configured') %></p>
+    <% } else { %>
+    <p style="color:var(--text-dim)"><%= t('settings.telegram_help') %></p>
+    <form method="post" action="/account/settings/telegram-chat-id" style="display:flex; gap:0.6em; flex-wrap:wrap; max-width:420px; margin-bottom:1em;">
+      <input type="text" name="telegram_chat_id" placeholder="<%= t('settings.telegram_chat_id_placeholder') %>" value="<%= telegramChatId || '' %>" autocomplete="off" style="flex:1; min-width:220px;">
+      <button type="submit"><%= t('settings.telegram_chat_id_save') %></button>
+    </form>
+    <form method="post" action="/account/settings/telegram-digest" style="display:flex; gap:0.6em; align-items:center; flex-wrap:wrap;">
+      <label style="display:flex; gap:0.4em; align-items:center; font-size:0.9em;">
+        <input type="checkbox" name="enabled" <%= telegramDigestEnabled ? 'checked' : '' %>>
+        <%= t('settings.telegram_enabled_label') %>
+      </label>
+      <label style="font-size:0.85em; color:var(--text-dim); font-weight:600;"><%= t('settings.reminder_time_label') %>
+        <select name="hour" style="display:block; margin-top:0.3em;">
+          <% for (let h = 0; h < 24; h++) { %>
+          <option value="<%= h %>" <%= telegramDigestHour === h ? 'selected' : '' %>><%= String(h).padStart(2,'0') %>:00</option>
+          <% } %>
+        </select>
+      </label>
+      <label style="font-size:0.85em; color:var(--text-dim); font-weight:600;"><%= t('settings.telegram_count_label') %>
+        <input type="number" name="count" min="1" max="20" value="<%= telegramDigestCount %>" style="display:block; margin-top:0.3em; width:5em;">
+      </label>
+      <button type="submit"><%= t('settings.telegram_digest_save') %></button>
+    </form>
+    <p style="margin-top:0.8em; display:flex; gap:0.6em; align-items:center; flex-wrap:wrap;">
+      <button type="button" id="telegram-test-btn" class="secondary"><%= t('settings.telegram_test') %></button>
+      <span id="telegram-test-result" style="font-size:0.85em;"></span>
+    </p>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('settings.ai_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('settings.ai_help') %> <a href="/recommendations"><%= t('settings.ai_help_link') %></a>.</p>
+
+    <form method="post" action="/account/settings/ai-provider" style="display:flex; gap:0.6em; align-items:center; flex-wrap:wrap; margin-bottom:1.2em;">
+      <label style="font-size:0.85em; color:var(--text-dim); font-weight:600;"><%= t('settings.ai_provider_label') %>
+        <select name="provider" style="display:block; margin-top:0.3em;">
+          <% aiProviders.forEach(function(p) { %>
+          <option value="<%= p %>" <%= aiProvider === p ? 'selected' : '' %>><%= AI_PROVIDER_NAMES[p] %></option>
+          <% }) %>
+        </select>
+      </label>
+      <button type="submit"><%= t('settings.ai_provider_save') %></button>
+    </form>
+
+    <% aiProviders.forEach(function(p) { %>
+    <div style="margin-bottom:1em;">
+      <p style="color:var(--text-dim); font-size:0.9em; margin-bottom:0.4em;">
+        <strong><%= AI_PROVIDER_NAMES[p] %></strong> --
+        <%= configuredProviders.includes(p) ? t('settings.ai_key_status_set') : t('settings.ai_key_status_unset') %>
+      </p>
+      <form method="post" action="/account/settings/ai-key" style="display:flex; gap:0.6em; flex-wrap:wrap; max-width:420px;">
+        <input type="hidden" name="provider" value="<%= p %>">
+        <input type="password" name="api_key" placeholder="<%= t('settings.ai_key_placeholder') %>" autocomplete="off" style="flex:1; min-width:220px;">
+        <button type="submit"><%= t('settings.ai_key_save') %></button>
+      </form>
+    </div>
+    <% }) %>
   </div>
 
   <div class="card">
@@ -120,11 +186,18 @@
     </form>
   </div>
 
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('settings.export_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('settings.export_help') %></p>
+    <a href="/account/export"><button type="button"><%= t('settings.export_button') %></button></a>
+  </div>
+
   <script>
     const VAPID_PUBLIC_KEY = <%- JSON.stringify(vapidPublicKey) %>;
     const S = <%- JSON.stringify({
         notSupported: t('settings.push_not_supported'), enable: t('settings.push_enable'),
         disable: t('settings.push_disable'), enabled: t('settings.push_enabled'), denied: t('settings.push_denied'),
+        testSending: t('settings.test_sending'), testOk: t('settings.test_ok'), testFailed: t('settings.test_generic_failed'),
     }) %>;
     let subscribed = <%- pushSubscribed ? 'true' : 'false' %>;
 
@@ -137,20 +210,25 @@
 
     const statusEl = document.getElementById('push-status');
     const toggleEl = document.getElementById('push-toggle');
+    const pushTestBtn = document.getElementById('push-test-btn');
+    const pushTestResult = document.getElementById('push-test-result');
 
     function renderState() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) {
         statusEl.textContent = S.notSupported;
         toggleEl.style.display = 'none';
+        pushTestBtn.style.display = 'none';
         return;
       }
       if (Notification.permission === 'denied') {
         statusEl.textContent = S.denied;
         toggleEl.style.display = 'none';
+        pushTestBtn.style.display = 'none';
         return;
       }
       statusEl.textContent = subscribed ? S.enabled : '';
       toggleEl.textContent = subscribed ? S.disable : S.enable;
+      pushTestBtn.style.display = subscribed ? '' : 'none';
     }
 
     async function enablePush() {
@@ -187,6 +265,36 @@
 
     toggleEl.onclick = () => (subscribed ? disablePush() : enablePush());
     renderState();
+
+    async function runTest(btn, resultEl, url) {
+      btn.disabled = true;
+      resultEl.style.color = 'var(--text-dim)';
+      resultEl.textContent = S.testSending;
+      try {
+        const res = await fetch(url, { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          resultEl.style.color = 'var(--accent)';
+          resultEl.textContent = S.testOk;
+        } else {
+          resultEl.style.color = 'var(--danger)';
+          resultEl.textContent = data.error || S.testFailed;
+        }
+      } catch {
+        resultEl.style.color = 'var(--danger)';
+        resultEl.textContent = S.testFailed;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    pushTestBtn.onclick = () => runTest(pushTestBtn, pushTestResult, '/account/settings/push-test');
+
+    const telegramTestBtn = document.getElementById('telegram-test-btn');
+    if (telegramTestBtn) {
+      const telegramTestResult = document.getElementById('telegram-test-result');
+      telegramTestBtn.onclick = () => runTest(telegramTestBtn, telegramTestResult, '/account/settings/telegram-test');
+    }
   </script>
 </main>
 </body>
