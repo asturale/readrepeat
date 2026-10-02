@@ -129,7 +129,7 @@
         }
         // Only reached after a non-empty batch was fully gone through --
         // this IS "did a review session today" for the dashboard's
-        // "Klaar voor vandaag" card. Fire-and-forget: never block the
+        // "All caught up" card. Fire-and-forget: never block the
         // done-screen on it.
         fetch('/review/session/complete', { method: 'POST' }).catch(() => {});
         document.querySelector('main').innerHTML =
@@ -158,11 +158,11 @@
       renderDots();
     }
 
-    // Inline bewerken zonder de review-flow te verlaten -- vervangt tekst+
-    // notitie door invoervelden met de RUWE (niet-gerenderde) markdown-tekst,
-    // net als de boekpagina's edit-formulier. Opslaan gaat via een JSON-
-    // route (POST /highlights/:id/edit, zie routes/web.js) i.p.v. de
-    // paginaredirect-variant, zodat de kaart in beeld blijft.
+    // Inline editing without leaving the review flow -- replaces text+note
+    // with input fields holding the RAW (unrendered) markdown text, same as
+    // the book page's edit form. Saving goes through a JSON route (POST
+    // /highlights/:id/edit, see routes/web.js) instead of the page-redirect
+    // variant, so the card stays on screen.
     function enterEditMode(h) {
       const card = document.getElementById('card');
       card.innerHTML =
@@ -173,9 +173,10 @@
         '<button type="button" class="secondary" id="edit-cancel" style="width:auto; padding:0.5em 1em;">' + esc(S.editCancel) + '</button>' +
         '<button type="button" id="edit-save" style="width:auto; padding:0.5em 1em;">' + esc(S.editSave) + '</button>' +
         '</div>';
-      // .value (niet innerHTML) zet de tekst 1-op-1 zonder HTML-interpretatie
-      // -- geen escaping nodig, dit is precies waarom .value hier bewust
-      // gebruikt wordt i.p.v. de tekst in de HTML-string hierboven te weven.
+      // .value (not innerHTML) sets the text 1-to-1 with no HTML
+      // interpretation -- no escaping needed, which is exactly why .value is
+      // used here deliberately instead of weaving the text into the HTML
+      // string above.
       document.getElementById('edit-text').value = h.text;
       document.getElementById('edit-note').value = h.note || '';
       document.getElementById('edit-cancel').onclick = () => renderCard();
