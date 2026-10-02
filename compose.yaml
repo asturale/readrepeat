@@ -14,7 +14,15 @@ services:
       - ./data:/data
     networks:
       - caddy
+      - kosync
 
 networks:
   caddy:
+    external: true
+  # Joins crosspoint-sync's own network (koreader-sync/compose.yaml) so the
+  # crosspoint-sync auto-import feature can reach it by container name --
+  # the app container has no route to the host's Tailscale IP otherwise
+  # (confirmed: a bridge-network container times out connecting to
+  # 100.86.39.35, Koen hit this immediately after setting it up).
+  kosync:
     external: true

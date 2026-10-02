@@ -36,7 +36,7 @@
 
     <form method="post" action="/import/crosspoint-settings" class="stacked" style="max-width:420px;">
       <label><%= t('import.crosspoint_server_url') %></label>
-      <input type="text" name="server_url" value="<%= crosspointServerUrl %>" placeholder="http://100.86.39.35:17200">
+      <input type="text" name="server_url" value="<%= crosspointServerUrl %>" placeholder="http://100.x.x.x:17200">
       <label><%= t('import.crosspoint_username') %></label>
       <input type="text" name="username" value="<%= crosspointUsername %>" autocomplete="off">
       <label><%= t('import.crosspoint_password') %> <span style="color:var(--text-dim); font-weight:normal;">(<%= crosspointConfigured ? t('import.crosspoint_password_set') : t('import.crosspoint_password_unset') %>)</span></label>
