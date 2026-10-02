@@ -1,95 +1,101 @@
 # ReadRepeat
 
-Zelfgehoste, open-source Readwise-alternatief: één overzicht van al je boek-highlights, met spaced-repetition review, automatische cover-verrijking en een eigen "Instagram-modus" die doomscrollen vervangt door iets dat je bijblijft.
+Self-hosted, open-source Readwise alternative: one place for all your book highlights, with spaced-repetition review, automatic cover enrichment, and its own "Instagram mode" that replaces doomscrolling with something that actually sticks with you.
 
-## Waarom ReadRepeat?
+## Why ReadRepeat?
 
-- **Zelf gehost** — je highlights staan op je eigen server, geen abonnement en geen derde partij die met je leesdata kan doen wat ze willen.
-- **Open source** — volledige controle over features en privacy, aan te passen naar eigen inzicht.
-- **Retentie in plaats van verzamelen** — spaced repetition zorgt dat highlights je echt bijblijven, in plaats van voorgoed weg te zakken in een archief.
-- **Instagram-modus die wél iets oplevert** — oneindig scrollen door je eigen highlights in plaats van andermans content, en het telt nog mee voor je review-schema ook.
+- **Self-hosted** — your highlights live on your own server, no subscription and no third party that can do whatever it wants with your reading data.
+- **Open source** — full control over features and privacy, adapt it however you like.
+- **Retention over collecting** — spaced repetition makes sure highlights actually stick with you, instead of sinking into an archive forever.
+- **An Instagram mode that gives something back** — endless scrolling through your own highlights instead of someone else's content, and it still counts toward your review schedule.
 
-## Functies
+## Features
 
 **Dashboard**
-- Daily Review-kaart met de highlights van vandaag, "klaar voor vandaag"-melding
-- Streak-teller + kalender (elke dag met minstens 1 voltooide review telt mee)
-- Feed van highlights: recent / willekeurig / langst geleden gezien, met onthouden voorkeur
+- Daily Review card with today's highlights, a "done for today" indicator
+- Streak counter + calendar (any day with at least 1 completed review counts)
+- Highlights feed: recent / random / longest since seen, with a remembered preference
 
-**Discover (Instagram-modus)**
-- Oneindige scroll door willekeurige highlights uit je review-pool
-- Een kaart voorbij scrollen telt automatisch mee voor spaced repetition
+**Discover (Instagram mode)**
+- Infinite scroll through random highlights from your review pool
+- Scrolling past a card automatically counts toward spaced repetition
 
-**Boeken**
-- Overzicht met sorteren (recent bijgewerkt / titel / auteur / aantal highlights)
-- Boeken samenvoegen met automatische dedup van highlights (ook vanuit zoekresultaten)
-- Metadata bewerken, boeken verwijderen
-- Automatische cover/auteur-verrijking via Hardcover's API, met Open Library als fallback
+**Books**
+- Overview with sorting (recently updated / title / author / highlight count)
+- Merge books with automatic highlight dedup (from search results too)
+- Edit metadata, delete books
+- Automatic cover/author enrichment via Hardcover's API, with Open Library as a fallback
 
 **Highlights**
-- Bewerken, samenvoegen, handmatig toevoegen, verwijderen
-- Inline markdown (`__tekst__` = highlighter, `**bold**`, `*italic*`, `![alt](url)` = afbeelding)
-- Readwise Action Tags (`.h1`/`.h2`/`.h3`/`.cN`) — hoofdstuk/paragraaf-context automatisch overgenomen
+- Edit, merge, add manually, delete
+- Inline markdown (`__text__` = highlighter, `**bold**`, `*italic*`, `![alt](url)` = image)
+- Readwise Action Tags (`.h1`/`.h2`/`.h3`/`.cN`) — chapter/paragraph context carried over automatically
 
 **Review (spaced repetition)**
-- Instelbare sessiegrootte + per-boek review-frequentie
-- 4-knops-model: volgende / vaker / minder / nooit meer
-- Swipe-gestures (links = volgende, rechts = vorige)
-- Webpush-herinneringen op een instelbaar tijdstip en frequentie
+- Configurable session size + per-book review frequency
+- 4-button model: next / more often / less often / never again
+- Swipe gestures (left = next, right = previous)
+- Web push reminders at a configurable time and frequency
 
-**Delen**
-- Highlight exporteren als afbeelding, achtergrondkleur automatisch gematcht aan de boekcover
+**Sharing**
+- Export a highlight as an image, background color automatically matched to the book's cover
 
-**Overig**
-- Zoeken in boeken + highlights
-- Installeerbaar als PWA (telefoon/desktop)
-- Meertalig (NL/EN, automatisch op browsertaal, per gebruiker instelbaar)
-- Sterke accountbeveiliging: scrypt-wachtwoordhashing, verplichte wachtwoordlengte (12+) met blocklist tegen veelvoorkomende wachtwoorden, wachtwoord wijzigen
-- `POST /api/import` — token-geauthenticeerd endpoint voor doorlopende import vanuit een eigen sync-script
-- Single-user: eenmalige `/setup` (daarna permanent gesloten), sessie-login
+**Importing**
+- Classic Kindle "My Clippings.txt" format (also used by CrossPoint/CrossInk devices for their highlight export)
+- Automatic sync from a [crosspoint-sync](https://github.com/crosspoint-reader/crosspoint-sync) server: fill in your server, username, password and a sync interval, and new highlights are pulled in automatically
+- Direct Kobo import: upload your device's `KoboReader.sqlite` file and its highlights are imported straight from it
+- One-time Readwise export import (see below)
+- `POST /api/import` — token-authenticated endpoint for ongoing import from your own sync script
 
-## Installatie
+**Other**
+- Search across books + highlights
+- Installable as a PWA (phone/desktop)
+- Multilingual (NL/EN, automatic from browser language, configurable per user)
+- Strong account security: scrypt password hashing, enforced minimum length (12+) with a blocklist against common passwords, password change
+- Single-user: one-time `/setup` (permanently closed afterwards), session login
 
-Vereist Docker + Docker Compose, en een reverse proxy op hetzelfde Docker-netwerk (`compose.yaml` verwacht een extern netwerk `caddy` — pas dit aan naar je eigen proxy-netwerk, of voeg tijdelijk `ports: ["3000:3000"]` toe om direct te testen zonder proxy).
+## Installation
+
+Requires Docker + Docker Compose, and a reverse proxy on the same Docker network (`compose.yaml` expects an external network called `caddy` — adjust this to your own proxy network, or temporarily add `ports: ["3000:3000"]` to test directly without a proxy).
 
 ```sh
 git clone https://github.com/asturale/readrepeat.git
 cd readrepeat
-cp .env.example .env   # vul SESSION_SECRET in, de rest is optioneel
-docker network create caddy   # als dat netwerk nog niet bestaat
+cp .env.example .env   # fill in SESSION_SECRET, everything else is optional
+docker network create caddy   # if that network doesn't exist yet
 docker compose up -d --build
 ```
 
-Eerste keer: open de site, je krijgt automatisch `/setup` te zien om je account aan te maken.
+First run: open the site and you'll automatically land on `/setup` to create your account.
 
-### Env-variabelen (`.env`)
+### Environment variables (`.env`)
 
-| Variabele | Verplicht | Omschrijving |
+| Variable | Required | Description |
 |---|---|---|
-| `SESSION_SECRET` | ja | willekeurige lange string voor sessie-cookies |
-| `HARDCOVER_API_TOKEN` | nee | cover/auteur-verrijking; zonder token alleen Open Library-fallback |
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | nee | webpush-herinneringen; genereer met `npx web-push generate-vapid-keys` |
-| `VAPID_SUBJECT` | nee | `mailto:` adres voor de VAPID-sleutel |
+| `SESSION_SECRET` | yes | a long random string for session cookies |
+| `HARDCOVER_API_TOKEN` | no | cover/author enrichment; without a token, only the Open Library fallback is used |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | no | web push reminders; generate with `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT` | no | a `mailto:` address for the VAPID key |
 
-## Eenmalige Readwise-import
+## One-time Readwise import
 
 ```sh
 docker compose exec app node scripts/import-from-readwise.mjs
 ```
 
-Vereist env vars `READWISE_TOKEN` (je Readwise-account-token) en `READREPEAT_API_TOKEN` (aangemaakt via Instellingen in de app zelf).
+Requires the env vars `READWISE_TOKEN` (your Readwise account token) and `READREPEAT_API_TOKEN` (created via Settings in the app itself).
 
 ## API
 
-`POST /api/import`, header `Authorization: Bearer <token>` (token via Instellingen):
+`POST /api/import`, header `Authorization: Bearer <token>` (token from Settings):
 
 ```json
 {
   "book": { "title": "...", "author": "..." },
   "highlights": [
-    { "text": "...", "note": "...", "location": "123", "color": "yellow", "source": "mijn-sync-script", "source_id": "uniek-id", "created_at": "2026-01-01T12:00:00Z" }
+    { "text": "...", "note": "...", "location": "123", "color": "yellow", "source": "my-sync-script", "source_id": "unique-id", "created_at": "2026-01-01T12:00:00Z" }
   ]
 }
 ```
 
-`source`/`source_id` zijn optioneel maar worden gebruikt om dubbele imports te herkennen bij herhaald aanroepen.
+`source`/`source_id` are optional but are used to recognize duplicate imports on repeated calls.
