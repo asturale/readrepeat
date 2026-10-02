@@ -56,17 +56,41 @@ Self-hosted, open-source Readwise alternative: one place for all your book highl
 
 ## Installation
 
-Requires Docker + Docker Compose, and a reverse proxy on the same Docker network (`compose.yaml` expects an external network called `caddy` — adjust this to your own proxy network, or temporarily add `ports: ["3000:3000"]` to test directly without a proxy).
+Requires Docker + Docker Compose.
+
+### Quick start (pre-built image)
+
+A ready-made image is published to GHCR on every release — no need to clone and build:
+
+```yaml
+# compose.yaml
+services:
+  app:
+    image: ghcr.io/asturale/readrepeat:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - SESSION_SECRET=change-me-to-a-long-random-string
+    volumes:
+      - ./data:/data
+```
+
+```sh
+docker compose up -d
+```
+
+### Building from source instead
 
 ```sh
 git clone https://github.com/asturale/readrepeat.git
 cd readrepeat
 cp .env.example .env   # fill in SESSION_SECRET, everything else is optional
-docker network create caddy   # if that network doesn't exist yet
+docker network create caddy   # if that network doesn't exist yet -- the included compose.yaml expects it, adjust to your own proxy network or add ports: ["3000:3000"] to test directly
 docker compose up -d --build
 ```
 
-First run: open the site and you'll automatically land on `/setup` to create your account.
+First run (either path): open the site and you'll automatically land on `/setup` to create your account.
 
 ### Environment variables (`.env`)
 
