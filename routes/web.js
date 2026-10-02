@@ -262,7 +262,7 @@ router.get('/highlights/:id/share.png', async (req, res) => {
         res.set('Content-Disposition', `inline; filename="highlight-${h.id}.png"`);
         res.send(png);
     } catch (e) {
-        res.status(500).send('Kon afbeelding niet genereren: ' + e.message);
+        res.status(500).send(res.locals.t('share.image_error', { message: e.message }));
     }
 });
 
@@ -479,7 +479,7 @@ router.post('/account/settings/telegram-test', async (req, res) => {
     const user = findUserById(req.session.userId);
     if (!user.telegram_chat_id) return res.status(400).json({ ok: false, error: res.locals.t('settings.telegram_test_no_chat_id') });
     try {
-        await sendTelegramTest(user.telegram_chat_id);
+        await sendTelegramTest(user.telegram_chat_id, user.locale);
         res.json({ ok: true });
     } catch (e) {
         res.status(502).json({ ok: false, error: res.locals.t('settings.telegram_test_failed') });

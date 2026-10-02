@@ -1,4 +1,11 @@
 import { db } from './index.js';
+import { translator, SUPPORTED_LOCALES } from '../lib/i18n.js';
+
+function userTranslator(userId) {
+    const row = db.prepare('SELECT locale FROM users WHERE id = ?').get(userId);
+    const locale = row?.locale && SUPPORTED_LOCALES.includes(row.locale) ? row.locale : 'nl';
+    return translator(locale);
+}
 
 const RECENT_MONTHS = 3;
 const MAX_RECENT_HIGHLIGHTS = 200; // keeps the prompt (and the bill) bounded on a big library
@@ -74,16 +81,16 @@ function gatherContext() {
     return { books, recentHighlights };
 }
 
-function buildPrompt({ books, recentHighlights }) {
+function buildPrompt({ books, recentHighlights }, t) {
     const bookList = books.map((b) => `- ${b.title}${b.author ? ` (${b.author})` : ''} [${b.highlight_count} highlights]`).join('\n');
     const highlightList = recentHighlights
-        .map((h) => `- "${h.text.slice(0, 300)}" -- uit "${h.book_title}"${h.book_author ? ` (${h.book_author})` : ''}`)
+        .map((h) => `- "${h.text.slice(0, 300)}" -- ${t('ai_prompt.highlight_source')} "${h.book_title}"${h.book_author ? ` (${h.book_author})` : ''}`)
         .join('\n');
 
     return (
-        `Hier is mijn boekenlijst (alle boeken die ik ooit gelezen/gearceerd heb):\n${bookList}\n\n` +
-        `En dit zijn mijn highlights van de laatste ${RECENT_MONTHS} maanden (waar ik nu blijkbaar mee bezig ben):\n${highlightList || '(geen recente highlights)'}\n\n` +
-        `Op basis hiervan: welke ~5 boeken zou je me aanraden om hierna te lezen? Voor elk boek: titel, auteur, en 1-2 zinnen waarom het aansluit bij wat ik lees/onderstreep. Vermijd boeken die al in mijn lijst staan. Antwoord in het Nederlands, gebruik markdown (bv. **titel** per aanbeveling).`
+        `${t('ai_prompt.book_list_intro')}\n${bookList}\n\n` +
+        `${t('ai_prompt.recent_highlights_intro', { months: RECENT_MONTHS })}\n${highlightList || t('ai_prompt.no_recent_highlights')}\n\n` +
+        t('ai_prompt.recommend_instruction')
     );
 }
 
@@ -96,40 +103,41 @@ function gatherBookContext(bookId) {
     return { book, highlights };
 }
 
-function buildBookPrompt({ book, highlights }) {
+function buildBookPrompt({ book, highlights }, t) {
     const highlightList = highlights.map((h) => `- "${h.text.slice(0, 300)}"`).join('\n');
+    const intro = book.author
+        ? t('ai_prompt.book_intro_with_author', { title: book.title, author: book.author })
+        : t('ai_prompt.book_intro_no_author', { title: book.title });
     return (
-        `Ik heb net "${book.title}"${book.author ? ` van ${book.author}` : ''} gelezen. Dit zijn de fragmenten die ik erin heb onderstreept:\n${highlightList || '(geen highlights)'}\n\n` +
-        `Op basis hiervan: welke ~5 boeken zou je me aanraden om hierna te lezen, die aansluiten bij wat me in dit specifieke boek raakte? Voor elk boek: titel, auteur, en 1-2 zinnen waarom het aansluit bij deze highlights. Antwoord in het Nederlands, gebruik markdown (bv. **titel** per aanbeveling).`
+        `${intro}\n${highlightList || t('ai_prompt.no_highlights')}\n\n` +
+        t('ai_prompt.book_instruction')
     );
 }
 
 const MAX_TOPIC_LENGTH = 200;
 
-function buildTopicPrompt({ books, recentHighlights }, topic) {
+function buildTopicPrompt({ books, recentHighlights }, topic, t) {
     const bookList = books.map((b) => `- ${b.title}${b.author ? ` (${b.author})` : ''} [${b.highlight_count} highlights]`).join('\n');
     const highlightList = recentHighlights
-        .map((h) => `- "${h.text.slice(0, 300)}" -- uit "${h.book_title}"${h.book_author ? ` (${h.book_author})` : ''}`)
+        .map((h) => `- "${h.text.slice(0, 300)}" -- ${t('ai_prompt.highlight_source')} "${h.book_title}"${h.book_author ? ` (${h.book_author})` : ''}`)
         .join('\n');
 
     return (
-        `Ik wil boeken over dit onderwerp: "${topic}".\n\n` +
-        `Ter context, dit is mijn boekenlijst (alle boeken die ik ooit gelezen/gearceerd heb), zodat je rekening houdt met mijn leessmaak/niveau:\n${bookList}\n\n` +
-        `En dit zijn mijn highlights van de laatste ${RECENT_MONTHS} maanden:\n${highlightList || '(geen recente highlights)'}\n\n` +
-        `Op basis hiervan: welke ~5 boeken over "${topic}" zou je me aanraden, die passen bij mijn leessmaak? Voor elk boek: titel, auteur, en 1-2 zinnen waarom het aansluit bij zowel het onderwerp als mijn smaak. Vermijd boeken die al in mijn lijst staan. Antwoord in het Nederlands, gebruik markdown (bv. **titel** per aanbeveling).`
+        `${t('ai_prompt.topic_intro', { topic })}\n\n` +
+        `${t('ai_prompt.topic_context_intro')}\n${bookList}\n\n` +
+        `${t('ai_prompt.recent_highlights_intro', { months: RECENT_MONTHS })}\n${highlightList || t('ai_prompt.no_recent_highlights')}\n\n` +
+        t('ai_prompt.topic_instruction', { topic })
     );
 }
 
-const SYSTEM_PROMPT = 'Je bent een goed belezen boekenadviseur. Wees concreet en persoonlijk, geen generieke bestsellerlijst.';
-
-async function callDeepseek(apiKey, userPrompt) {
+async function callDeepseek(apiKey, userPrompt, systemPrompt) {
     const res = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model: 'deepseek-flash',
             messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
             ],
         }),
@@ -139,14 +147,14 @@ async function callDeepseek(apiKey, userPrompt) {
     return data.choices?.[0]?.message?.content || null;
 }
 
-async function callOpenAI(apiKey, userPrompt) {
+async function callOpenAI(apiKey, userPrompt, systemPrompt) {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model: 'gpt-6-sol',
             messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
             ],
         }),
@@ -160,7 +168,7 @@ async function callOpenAI(apiKey, userPrompt) {
 // pair above: x-api-key (not Bearer) + a required anthropic-version header,
 // system prompt as its own top-level field (not a messages[0]), and the
 // reply comes back as a content BLOCK ARRAY, not choices[0].message.content.
-async function callAnthropic(apiKey, userPrompt) {
+async function callAnthropic(apiKey, userPrompt, systemPrompt) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -171,7 +179,7 @@ async function callAnthropic(apiKey, userPrompt) {
         body: JSON.stringify({
             model: 'claude-sonnet-5',
             max_tokens: 2000,
-            system: SYSTEM_PROMPT,
+            system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }],
         }),
     });
@@ -190,7 +198,8 @@ export async function generateRecommendations(userId) {
     const context = gatherContext();
     if (context.books.length === 0) throw new Error('no_books');
 
-    const content = await CALL_PROVIDER[provider](apiKey, buildPrompt(context));
+    const t = userTranslator(userId);
+    const content = await CALL_PROVIDER[provider](apiKey, buildPrompt(context, t), t('ai_prompt.system'));
     if (!content) throw new Error('empty_response');
 
     saveRecommendation(userId, content);
@@ -206,7 +215,8 @@ export async function generateRecommendationsForBook(userId, bookId) {
     if (!context) throw new Error('book_not_found');
     if (context.highlights.length === 0) throw new Error('no_highlights');
 
-    const content = await CALL_PROVIDER[provider](apiKey, buildBookPrompt(context));
+    const t = userTranslator(userId);
+    const content = await CALL_PROVIDER[provider](apiKey, buildBookPrompt(context, t), t('ai_prompt.system'));
     if (!content) throw new Error('empty_response');
 
     saveRecommendation(userId, content, { bookId });
@@ -224,7 +234,8 @@ export async function generateRecommendationsForTopic(userId, topic) {
     const context = gatherContext();
     if (context.books.length === 0) throw new Error('no_books');
 
-    const content = await CALL_PROVIDER[provider](apiKey, buildTopicPrompt(context, trimmed));
+    const t = userTranslator(userId);
+    const content = await CALL_PROVIDER[provider](apiKey, buildTopicPrompt(context, trimmed, t), t('ai_prompt.system'));
     if (!content) throw new Error('empty_response');
 
     saveRecommendation(userId, content, { topic: trimmed });

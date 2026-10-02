@@ -2,15 +2,19 @@ import express from 'express';
 import { recordReview } from '../db/reviews.js';
 import { logSessionDay } from '../db/streak.js';
 import { verifyActionSignature } from '../lib/telegram-digest.js';
+import { findUserById } from '../db/auth.js';
+import { translator, SUPPORTED_LOCALES } from '../lib/i18n.js';
 
 const router = express.Router();
 
-const CONFIRM_TEXT = {
-    more: '📈 Wordt vaker getoond.',
-    less: '📉 Wordt minder vaak getoond.',
-    stop: '🚫 Komt niet meer terug in review.',
-    read: '✅ Gemarkeerd als gelezen -- telt mee voor je streak.',
-};
+function confirmText(t) {
+    return {
+        more: `📈 ${t('telegram.confirm_more')}`,
+        less: `📉 ${t('telegram.confirm_less')}`,
+        stop: `🚫 ${t('telegram.confirm_stop')}`,
+        read: `✅ ${t('telegram.confirm_read')}`,
+    };
+}
 
 // Tapped from a Telegram digest message -- no login, the signature (derived
 // from TELEGRAM_BOT_TOKEN, see lib/telegram-digest.js) is what proves this
@@ -25,8 +29,12 @@ const CONFIRM_TEXT = {
 // need a public endpoint.
 router.get('/action/:userId/:highlightId/:action', (req, res) => {
     const { userId, highlightId, action } = req.params;
-    if (!CONFIRM_TEXT[action]) return res.status(400).send('Onbekende actie.');
-    if (!verifyActionSignature(userId, highlightId, action, req.query.sig)) return res.status(403).send('Ongeldige link.');
+    const user = findUserById(Number(userId));
+    const locale = user?.locale && SUPPORTED_LOCALES.includes(user.locale) ? user.locale : 'nl';
+    const t = translator(locale);
+    const CONFIRM_TEXT = confirmText(t);
+    if (!CONFIRM_TEXT[action]) return res.status(400).send(t('telegram.action_unknown'));
+    if (!verifyActionSignature(userId, highlightId, action, req.query.sig)) return res.status(403).send(t('telegram.action_invalid_link'));
 
     if (action === 'read') {
         logSessionDay(Number(userId));
@@ -37,7 +45,7 @@ router.get('/action/:userId/:highlightId/:action', (req, res) => {
 <title>ReadRepeat</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:400px;margin:3em auto;padding:0 1.2em;text-align:center;color:#222;">
 <p style="font-size:1.3em;">${CONFIRM_TEXT[action]}</p>
-<p><a href="/">← Terug naar ReadRepeat</a></p>
+<p><a href="/">← ${t('telegram.action_back')}</a></p>
 </body></html>`);
 });
 
