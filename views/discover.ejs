@@ -114,9 +114,9 @@
     if (seenObserver) seenObserver.observe(el);
   }
 
-  // Zelfde inline-bewerken als review.ejs (zie die comment voor de
-  // redenering), hier per kaart i.p.v. één globale #card -- de discover-feed
-  // toont immers meerdere kaarten tegelijk.
+  // Same inline-editing as review.ejs (see that comment for the reasoning),
+  // here per-card instead of one global #card -- the discover feed shows
+  // multiple cards at once after all.
   function enterEditMode(el, c) {
     el.innerHTML =
       '<div class="book-line-row">' +
