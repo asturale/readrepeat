@@ -208,8 +208,8 @@ function toDiscoverCards(batch) {
     return batch.map((h) => ({
         id: h.id,
         book_id: h.book_id,
-        // Ruwe tekst/notitie erbij (naast de al-gerenderde *Html-velden) --
-        // nodig om de edit-textarea's te vullen, net als review.ejs doet.
+        // Raw text/note included too (alongside the already-rendered *Html
+        // fields) -- needed to fill the edit textareas, same as review.ejs does.
         text: h.text,
         note: h.note || null,
         textHtml: renderInlineMarkdown(h.text),
@@ -231,9 +231,9 @@ router.get('/api/discover', (req, res) => {
     res.json({ cards: toDiscoverCards(batch) });
 });
 
-// JSON-variant van /books/:id/highlights/:hid/edit, voor de reviewkaart
-// (client-rendered, geen paginaredirect zoals de boekpagina-versie -- de
-// gebruiker moet in de review-flow kunnen blijven na opslaan).
+// JSON variant of /books/:id/highlights/:hid/edit, for the review card
+// (client-rendered, no page redirect like the book-page version -- the
+// user needs to be able to stay in the review flow after saving).
 router.post('/highlights/:id/edit', (req, res) => {
     const h = getHighlight(req.params.id);
     if (!h) return res.status(404).json({ error: 'not found' });
@@ -280,12 +280,12 @@ router.get('/import', (req, res) => {
     res.render('import', { result: null, error: null });
 });
 
-// Klassiek Kindle "My Clippings"-formaat (ook gebruikt door CrossPoint/
-// CrossInk-devices) -- tekst wordt CLIENT-SIDE uit het geuploade bestand
-// gelezen (geen multer/multipart nodig, scheelt een dependency) en als
-// platte tekst gepost. express.text() i.p.v. het globale json/urlencoded-
-// limiet (100kb resp. 2mb) -- een jarenlang opgebouwd clippings-bestand kan
-// groter zijn.
+// Classic Kindle "My Clippings" format (also used by CrossPoint/CrossInk
+// devices) -- text is read CLIENT-SIDE from the uploaded file (no multer/
+// multipart needed, saves a dependency) and posted as plain text.
+// express.text() instead of the global json/urlencoded limit (100kb and
+// 2mb respectively) -- a clippings file built up over years can be bigger
+// than that.
 router.post('/import/clippings', express.text({ type: '*/*', limit: '10mb' }), (req, res) => {
     const { error, result } = importClippingsText(req.body);
     if (error) return res.render('import', { result: null, error: res.locals.t(`import.error_${error}`) });
@@ -302,8 +302,8 @@ function accountLocals(req, res) {
 }
 
 // API tokens, language and password all moved here from /account (Koen:
-// "verplaats api token beheer en taalinstelling naar de instellingen
-// pagina") -- /account is now just the menu + streak + logout.
+// "move API token management and the language setting to the settings
+// page") -- /account is now just the menu + streak + logout.
 function settingsLocals(req, extra) {
     const user = findUserById(req.session.userId);
     return {
@@ -374,9 +374,9 @@ router.get('/account/settings', (req, res) => {
     res.render('settings', settingsLocals(req));
 });
 
-// GDPR-dataexport (Art. 20) -- alles wat de app over deze gebruiker heeft,
-// als downloadbaar JSON-bestand. Geen wachtwoord-hash/API-tokens/BYOK-keys
-// erin (zie db/export.js's eigen toelichting).
+// GDPR data export (Art. 20) -- everything the app has about this user, as
+// a downloadable JSON file. No password hash/API tokens/BYOK keys in it
+// (see db/export.js's own explanation).
 router.get('/account/export', (req, res) => {
     const data = buildGdprExport(req.session.userId);
     const filename = `readrepeat-export-${new Date().toISOString().slice(0, 10)}.json`;

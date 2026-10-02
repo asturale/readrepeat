@@ -33,9 +33,9 @@ CREATE TABLE IF NOT EXISTS books (
     cover_url      TEXT,
     hardcover_id   INTEGER,
     normalized_key TEXT NOT NULL UNIQUE,
-    -- Per-boek review-frequentie-knop: 1.0 = normaal, 2.0 = 2x zo vaak terug
-    -- in de review-wachtrij (SM-2-interval wordt erdoor gedeeld), 0.5 = half
-    -- zo vaak. Toegepast in reviews.js's recordReview().
+    -- Per-book review-frequency dial: 1.0 = normal, 2.0 = comes back 2x as
+    -- often in the review queue (the SM-2 interval is divided by it), 0.5 =
+    -- half as often. Applied in reviews.js's recordReview().
     review_weight  REAL NOT NULL DEFAULT 1.0,
     created_at     INTEGER NOT NULL,
     updated_at     INTEGER NOT NULL
@@ -159,14 +159,15 @@ CREATE TABLE IF NOT EXISTS recommendations (
     created_at INTEGER NOT NULL
 );
 `);
-// NULL = obv de hele bibliotheek (bestaand gedrag); gezet = obv 1 specifiek
-// boek (per-boek "Aanbevelingen obv dit boek"-knop). ON DELETE SET NULL, niet
-// CASCADE -- de aanbeveling zelf blijft geldig/leesbaar als het bronboek
-// later verwijderd wordt, alleen de boek-link verdwijnt dan.
+// NULL = based on the whole library (existing behavior); set = based on 1
+// specific book (the per-book "Recommendations based on this book" button).
+// ON DELETE SET NULL, not CASCADE -- the recommendation itself stays
+// valid/readable if the source book is later deleted, only the book link
+// disappears then.
 ensureColumn('recommendations', 'book_id', 'book_id INTEGER REFERENCES books(id) ON DELETE SET NULL');
-// Losstaand van book_id: gezet wanneer de gebruiker een vrij-tekst-onderwerp
-// opgaf ("aanbevelingen over X, passend bij mijn leessmaak") i.p.v. de hele
-// bibliotheek of 1 specifiek boek als bron.
+// Separate from book_id: set when the user supplied a free-text topic
+// ("recommendations about X, matching my taste") instead of the whole
+// library or 1 specific book as the source.
 ensureColumn('recommendations', 'topic', 'topic TEXT');
 
 export function userCount() {

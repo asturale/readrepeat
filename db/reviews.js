@@ -21,8 +21,8 @@ export function removeFromReview(highlightId) {
 // Koen wants a BATCH per review session (default 5, adjustable), not a
 // one-at-a-time Anki-style single card. Ordering: due items first, then by
 // the highlight's ORIGINAL created_at (older highlights get first crack) --
-// but explicitly NOT a strict oldest-first queue (Koen: "niet alleen oude,
-// zoals Readwise het ook doet") and NOT clustered on one book (he noticed a
+// but explicitly NOT a strict oldest-first queue (Koen: "not just old ones,
+// the way Readwise does it too") and NOT clustered on one book (he noticed a
 // batch of 5 all from the same book). So: build a decent-sized candidate
 // pool with that ordering, then round-robin across books in shuffled order
 // to spread a batch across different books.
@@ -168,7 +168,7 @@ export function recordReview(highlightId, action) {
     // 'next': interval unchanged, just moves due_at forward by it.
 
     const weight = row.review_weight || 1;
-    const effectiveInterval = Math.max(1 / 24, interval / weight); // min. 1 uur
+    const effectiveInterval = Math.max(1 / 24, interval / weight); // min. 1 hour
     const now = Date.now();
     const dueAt = now + effectiveInterval * 24 * 60 * 60 * 1000;
 

@@ -3,16 +3,15 @@ import { findUserById, listApiTokens } from './auth.js';
 import { getSessionDates } from './streak.js';
 import { listRecommendations } from './recommendations.js';
 
-// GDPR-exportbestand (Art. 20, recht op dataportabiliteit). Bevat alles wat
-// de app over de gebruiker heeft, MINUS geheimen -- wachtwoord-hash,
-// API-token-hashes en de BYOK-providerkeys zijn credentials, geen
-// persoonsgegevens, en horen niet in een leesbaar exportbestand terecht te
-// komen (dat zou zelf een lek worden als het bestand ooit rondslingert).
+// GDPR export file (Art. 20, right to data portability). Contains everything
+// the app has about the user, MINUS secrets -- the password hash, API token
+// hashes, and the BYOK provider keys are credentials, not personal data, and
+// have no business ending up in a readable export file (that would itself
+// become a leak if the file ever ended up somewhere it shouldn't).
 //
-// books/highlights/reviews zijn in dit schema NIET per-gebruiker gescoped
-// (1 gedeelde bibliotheek, zie db/index.js) -- toch meegenomen, want dat is
-// functioneel exact "mijn data" voor een gebruiker van een single-tenant
-// installatie zoals deze.
+// books/highlights/reviews are NOT per-user scoped in this schema (1 shared
+// library, see db/index.js) -- included anyway, since that's functionally
+// exactly "my data" for a user of a single-tenant install like this one.
 export function buildGdprExport(userId) {
     const user = findUserById(userId);
 

@@ -132,7 +132,7 @@ export function countHighlights() {
 
 // Dashboard "Feed": most recently added highlights (not heading markers),
 // newest first, for a quick glance at what just came in. Only highlights
-// still enrolled in review show up here -- "Niet meer" (discard) in review
+// still enrolled in review show up here -- "Never again" (discard) in review
 // removes a highlight from the reviews table, and Koen wants that to also
 // drop it from the feed (it stays visible on the book page and in search).
 export function listRecentHighlights(limit = 10) {
