@@ -51,8 +51,8 @@
   if (mergeBtn) {
     boxes().forEach((box) => box.addEventListener('change', () => {
       mergeBtn.disabled = boxes().filter((b) => b.checked).length < 2;
-      // Een radio voor een uitgevinkt boek is zinloos (en verwarrend) -- die
-      // hoort dan zelf ook uit te gaan, geen impliciete survivor meer.
+      // A radio button for an unchecked book is meaningless (and confusing)
+      // -- it should turn off too, no implicit survivor left.
       if (!box.checked) {
         const r = radios().find((rr) => rr.value === box.value);
         if (r) r.checked = false;
