@@ -49,9 +49,9 @@ function saveRecommendation(userId, content, { bookId = null, topic = null } = {
     db.prepare('INSERT INTO recommendations (user_id, content, book_id, topic, created_at) VALUES (?, ?, ?, ?, ?)').run(userId, content, bookId, topic, Date.now());
 }
 
-// Boeken/highlights zijn niet per-user gescoped in dit schema (zie
-// db/index.js) -- net als de rest van de app werkt dit dus op de hele,
-// gedeelde bibliotheek, niet per account.
+// Books/highlights aren't per-user scoped in this schema (see db/index.js)
+// -- so like the rest of the app, this works on the whole shared library,
+// not per account.
 function gatherContext() {
     const books = db
         .prepare(
