@@ -16,6 +16,10 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'ReadRepeat';
   const options = {
     body: data.body || '',
+    // Without these the OS falls back to the browser's own icon (e.g.
+    // Brave's logo on Android) instead of the app's.
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
     data: { url: data.url || '/' },
   };
   event.waitUntil(self.registration.showNotification(title, options));
