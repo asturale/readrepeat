@@ -31,6 +31,9 @@ import { renderShareImage } from '../lib/share-image.js';
 import { stripMarkdown, renderInlineMarkdown } from '../lib/markdown.js';
 import { search } from '../db/search.js';
 import { buildGdprExport } from '../db/export.js';
+import { setCrosspointSettings, markCrosspointSynced } from '../db/crosspoint.js';
+import { syncCrosspointClippings } from '../lib/crosspoint-sync.js';
+import { importKoboDb } from '../lib/import-kobo.js';
 
 const pkg = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'package.json'), 'utf8'));
 
@@ -276,8 +279,24 @@ router.get('/search', (req, res) => {
     res.render('search', { q, results });
 });
 
+function importLocals(req, extra) {
+    const user = findUserById(req.session.userId);
+    return {
+        result: null,
+        error: null,
+        crosspointEnabled: !!user.crosspoint_enabled,
+        crosspointServerUrl: user.crosspoint_server_url || '',
+        crosspointUsername: user.crosspoint_username || '',
+        crosspointConfigured: !!user.crosspoint_password,
+        crosspointIntervalMinutes: user.crosspoint_interval_minutes,
+        crosspointLastSyncedAt: user.crosspoint_last_synced_at,
+        crosspointLastSyncError: user.crosspoint_last_sync_error,
+        ...extra,
+    };
+}
+
 router.get('/import', (req, res) => {
-    res.render('import', { result: null, error: null });
+    res.render('import', importLocals(req));
 });
 
 // Classic Kindle "My Clippings" format (also used by CrossPoint/CrossInk
@@ -288,8 +307,50 @@ router.get('/import', (req, res) => {
 // than that.
 router.post('/import/clippings', express.text({ type: '*/*', limit: '10mb' }), (req, res) => {
     const { error, result } = importClippingsText(req.body);
-    if (error) return res.render('import', { result: null, error: res.locals.t(`import.error_${error}`) });
-    res.render('import', { result, error: null });
+    if (error) return res.render('import', importLocals(req, { error: res.locals.t(`import.error_${error}`) }));
+    res.render('import', importLocals(req, { result }));
+});
+
+// Kobo's own KoboReader.sqlite, uploaded as raw binary (read client-side as
+// an ArrayBuffer, NOT text like the clippings upload above -- it's a SQLite
+// file, not UTF-8) -- see lib/import-kobo.js for the Bookmark/content join.
+router.post('/import/kobo-db', express.raw({ type: '*/*', limit: '50mb' }), (req, res) => {
+    const { error, result } = importKoboDb(req.body);
+    if (error) return res.render('import', importLocals(req, { error: res.locals.t(`import.error_${error}`) }));
+    res.render('import', importLocals(req, { result }));
+});
+
+router.post('/import/crosspoint-settings', (req, res) => {
+    setCrosspointSettings(req.session.userId, {
+        enabled: req.body.enabled === 'on',
+        serverUrl: req.body.server_url,
+        username: req.body.username,
+        password: req.body.password,
+        intervalMinutes: req.body.interval_minutes,
+    });
+    res.redirect('/import');
+});
+
+// Manual "sync now" button -- same credentials/logic as the background
+// scheduler (lib/crosspoint-sync.js), just triggered immediately instead of
+// waiting for the next interval tick.
+router.post('/import/crosspoint-sync-now', async (req, res) => {
+    const user = findUserById(req.session.userId);
+    if (!user.crosspoint_server_url || !user.crosspoint_username || !user.crosspoint_password) {
+        return res.status(400).json({ ok: false, error: res.locals.t('import.crosspoint_not_configured') });
+    }
+    try {
+        const result = await syncCrosspointClippings({
+            serverUrl: user.crosspoint_server_url,
+            username: user.crosspoint_username,
+            password: user.crosspoint_password,
+        });
+        markCrosspointSynced(user.id, { error: null });
+        res.json({ ok: true, result });
+    } catch (e) {
+        markCrosspointSynced(user.id, { error: e.message });
+        res.status(502).json({ ok: false, error: e.message });
+    }
 });
 
 function accountLocals(req, res) {

@@ -150,6 +150,17 @@ ensureColumn('users', 'telegram_digest_enabled', 'telegram_digest_enabled INTEGE
 ensureColumn('users', 'telegram_digest_hour', 'telegram_digest_hour INTEGER NOT NULL DEFAULT 8');
 ensureColumn('users', 'telegram_digest_count', 'telegram_digest_count INTEGER NOT NULL DEFAULT 5');
 ensureColumn('users', 'last_telegram_digest_at', 'last_telegram_digest_at INTEGER');
+// Auto-import from a crosspoint-sync server (BYO instance -- see
+// lib/crosspoint-sync.js): password is stored as-is (not hashed) because it
+// has to be replayed as the x-auth-key header on every poll, same tradeoff
+// as the Telegram bot token/ntfy credentials elsewhere in this app.
+ensureColumn('users', 'crosspoint_enabled', 'crosspoint_enabled INTEGER NOT NULL DEFAULT 0');
+ensureColumn('users', 'crosspoint_server_url', 'crosspoint_server_url TEXT');
+ensureColumn('users', 'crosspoint_username', 'crosspoint_username TEXT');
+ensureColumn('users', 'crosspoint_password', 'crosspoint_password TEXT');
+ensureColumn('users', 'crosspoint_interval_minutes', 'crosspoint_interval_minutes INTEGER NOT NULL DEFAULT 60');
+ensureColumn('users', 'crosspoint_last_synced_at', 'crosspoint_last_synced_at INTEGER');
+ensureColumn('users', 'crosspoint_last_sync_error', 'crosspoint_last_sync_error TEXT');
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS recommendations (

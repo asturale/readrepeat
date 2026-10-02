@@ -4,25 +4,70 @@
 <main>
   <p><a href="/account">&larr; <%= t('import.back') %></a></p>
   <h1 class="page-title"><%= t('import.title') %></h1>
+
+  <% if (error) { %><p style="color:var(--danger)"><%= error %></p><% } %>
+  <% if (result) { %>
+    <p style="color:var(--accent)"><%= t('import.result', { total: result.total, created: result.created, updated: result.updated }) %></p>
+  <% } %>
+
   <div class="card">
     <h2 style="margin-top:0"><%= t('import.clippings_heading') %></h2>
     <p style="color:var(--text-dim)"><%= t('import.clippings_help') %></p>
-
-    <% if (error) { %><p style="color:var(--danger)"><%= error %></p><% } %>
-    <% if (result) { %>
-      <p style="color:var(--accent)"><%= t('import.result', { total: result.total, created: result.created, updated: result.updated }) %></p>
-    <% } %>
 
     <form id="clippings-form" method="post" action="/import/clippings" style="display:flex; flex-direction:column; gap:0.6em; max-width:420px;">
       <input type="file" id="clippings-file" accept=".txt,.bin,text/plain">
       <button type="submit" id="clippings-submit" disabled><%= t('import.submit') %></button>
     </form>
   </div>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('import.kobo_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('import.kobo_help') %></p>
+
+    <form id="kobo-form" method="post" action="/import/kobo-db" style="display:flex; flex-direction:column; gap:0.6em; max-width:420px;">
+      <input type="file" id="kobo-file" accept=".sqlite,.db">
+      <button type="submit" id="kobo-submit" disabled><%= t('import.submit') %></button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('import.crosspoint_heading') %></h2>
+    <p style="color:var(--text-dim)"><%= t('import.crosspoint_help') %></p>
+
+    <form method="post" action="/import/crosspoint-settings" class="stacked" style="max-width:420px;">
+      <label><%= t('import.crosspoint_server_url') %></label>
+      <input type="text" name="server_url" value="<%= crosspointServerUrl %>" placeholder="http://100.86.39.35:17200">
+      <label><%= t('import.crosspoint_username') %></label>
+      <input type="text" name="username" value="<%= crosspointUsername %>" autocomplete="off">
+      <label><%= t('import.crosspoint_password') %> <span style="color:var(--text-dim); font-weight:normal;">(<%= crosspointConfigured ? t('import.crosspoint_password_set') : t('import.crosspoint_password_unset') %>)</span></label>
+      <input type="password" name="password" placeholder="<%= t('import.crosspoint_password_placeholder') %>" autocomplete="off">
+      <label><%= t('import.crosspoint_interval') %></label>
+      <input type="number" name="interval_minutes" min="5" max="1440" value="<%= crosspointIntervalMinutes %>" style="width:8em;">
+      <label style="display:flex; gap:0.4em; align-items:center; font-size:0.9em; font-weight:normal;">
+        <input type="checkbox" name="enabled" <%= crosspointEnabled ? 'checked' : '' %>>
+        <%= t('import.crosspoint_enabled_label') %>
+      </label>
+      <p><button type="submit"><%= t('import.crosspoint_save') %></button></p>
+    </form>
+
+    <p style="color:var(--text-dim); font-size:0.85em;">
+      <% if (crosspointLastSyncedAt) { %>
+        <%= t('import.crosspoint_last_synced', { time: new Date(crosspointLastSyncedAt).toLocaleString(dateLocale) }) %>
+      <% } else { %>
+        <%= t('import.crosspoint_never_synced') %>
+      <% } %>
+      <% if (crosspointLastSyncError) { %>
+        <br><span style="color:var(--danger)"><%= crosspointLastSyncError %></span>
+      <% } %>
+    </p>
+    <button type="button" id="crosspoint-sync-btn" class="secondary"><%= t('import.crosspoint_sync_now') %></button>
+    <span id="crosspoint-sync-result" style="font-size:0.85em;"></span>
+  </div>
 </main>
 <script>
-  // Geen multer/multipart-parsing nodig op de server: het bestand wordt
-  // hier client-side als platte tekst ingelezen en als text/plain-body
-  // gepost (zie routes/web.js's express.text() op /import/clippings).
+  // No multer/multipart parsing needed server-side: the file is read here
+  // client-side as plain text and posted as a text/plain body (see
+  // routes/web.js's express.text() on /import/clippings).
   const fileInput = document.getElementById('clippings-file');
   const form = document.getElementById('clippings-form');
   const submitBtn = document.getElementById('clippings-submit');
@@ -53,6 +98,68 @@
       document.write(html);
       document.close();
     });
+  });
+
+  // KoboReader.sqlite is a binary SQLite file, not text -- read as an
+  // ArrayBuffer and posted as raw bytes (see routes/web.js's express.raw()
+  // on /import/kobo-db).
+  const koboInput = document.getElementById('kobo-file');
+  const koboForm = document.getElementById('kobo-form');
+  const koboSubmit = document.getElementById('kobo-submit');
+  let koboBuffer = null;
+
+  koboInput.addEventListener('change', () => {
+    const file = koboInput.files[0];
+    koboSubmit.disabled = true;
+    koboBuffer = null;
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      koboBuffer = reader.result;
+      koboSubmit.disabled = false;
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  koboForm.addEventListener('submit', (e) => {
+    if (koboBuffer === null) { e.preventDefault(); return; }
+    e.preventDefault();
+    fetch('/import/kobo-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: koboBuffer,
+    }).then((res) => res.text()).then((html) => {
+      document.open();
+      document.write(html);
+      document.close();
+    });
+  });
+
+  const crosspointBtn = document.getElementById('crosspoint-sync-btn');
+  const crosspointResult = document.getElementById('crosspoint-sync-result');
+  crosspointBtn.addEventListener('click', async () => {
+    crosspointBtn.disabled = true;
+    crosspointResult.style.color = 'var(--text-dim)';
+    crosspointResult.textContent = <%- JSON.stringify(t('settings.test_sending')) %>;
+    try {
+      const res = await fetch('/import/crosspoint-sync-now', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        crosspointResult.style.color = 'var(--accent)';
+        crosspointResult.textContent = <%- JSON.stringify(t('import.result')) %>
+          .replace('{total}', data.result.total)
+          .replace('{created}', data.result.created)
+          .replace('{updated}', data.result.updated);
+      } else {
+        crosspointResult.style.color = 'var(--danger)';
+        crosspointResult.textContent = data.error || <%- JSON.stringify(t('settings.test_generic_failed')) %>;
+      }
+    } catch {
+      crosspointResult.style.color = 'var(--danger)';
+      crosspointResult.textContent = <%- JSON.stringify(t('settings.test_generic_failed')) %>;
+    } finally {
+      crosspointBtn.disabled = false;
+    }
   });
 </script>
 </body>
