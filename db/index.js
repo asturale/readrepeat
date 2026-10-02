@@ -92,6 +92,22 @@ CREATE TABLE IF NOT EXISTS session_log (
     date    TEXT NOT NULL,
     PRIMARY KEY (user_id, date)
 );
+
+-- One row per (user, calendar day): the stable set of highlight ids picked
+-- for "today's" review, so a dashboard refresh (or a direct /review visit)
+-- doesn't reshuffle a fresh random batch every time (Koen: it's a DAILY
+-- review, not a new one per page load). Overwritten in place -- not a new
+-- row -- once completed_at is set and a fresh batch is drawn later the same
+-- day (Koen: finishing a batch should offer a new one to review next,
+-- within the same day).
+CREATE TABLE IF NOT EXISTS daily_review_batch (
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date          TEXT NOT NULL,
+    highlight_ids TEXT NOT NULL,
+    completed_at  INTEGER,
+    created_at    INTEGER NOT NULL,
+    PRIMARY KEY (user_id, date)
+);
 `);
 
 // Idempotent column migration -- `CREATE TABLE IF NOT EXISTS` above is a

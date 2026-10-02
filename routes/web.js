@@ -26,7 +26,7 @@ import { setTelegramChatId, setTelegramDigest } from '../db/telegram.js';
 import { telegramDigestConfigured, sendTelegramTest } from '../lib/telegram-digest.js';
 import { sendToSubscription } from '../lib/push.js';
 import { VAPID_PUBLIC } from '../lib/push.js';
-import { addToReview, removeFromReview, isInReview, getReviewBatch, recordReview, reviewQueueSize, reviewEnrolledCount, previewFromBatch, getHighlightsByIds, getDiscoverBatch } from '../db/reviews.js';
+import { addToReview, removeFromReview, isInReview, getTodaysBatch, markTodaysBatchCompleted, recordReview, reviewQueueSize, reviewEnrolledCount, previewFromBatch, getHighlightsByIds, getDiscoverBatch } from '../db/reviews.js';
 import { renderShareImage } from '../lib/share-image.js';
 import { stripMarkdown, renderInlineMarkdown } from '../lib/markdown.js';
 import { search } from '../db/search.js';
@@ -53,12 +53,11 @@ router.get('/', (req, res) => {
     // was last saved.
     const feedMode = ['recent', 'random', 'oldest'].includes(req.query.feed) ? req.query.feed : user.feed_mode;
     if (req.query.feed && req.query.feed !== user.feed_mode) setFeedMode(user.id, feedMode);
-    // Fetch the batch ONCE here and carry its exact highlight ids into the
-    // "Review" button's link (see dashboard.ejs) -- previously the preview
-    // covers/authors came from a separate, differently-ordered query than
-    // getReviewBatch()'s own shuffled diversity pick, so they almost never
-    // matched what actually opened in /review.
-    const previewBatch = reviewEnrolled > 0 ? getReviewBatch(user.review_batch_size) : [];
+    // getTodaysBatch() is stable for the rest of the calendar day (see its
+    // own comment) -- fetch it ONCE here and carry its exact highlight ids
+    // into the "Review" button's link (see dashboard.ejs), so the preview
+    // covers/authors always match what actually opens in /review.
+    const previewBatch = reviewEnrolled > 0 ? getTodaysBatch(user.id, user.review_batch_size) : [];
     res.render('dashboard', {
         bookCount,
         totalHighlights: countHighlights(),
@@ -185,10 +184,10 @@ router.post('/books/:id/highlights/:hid/review-toggle', (req, res) => {
 router.get('/review', (req, res) => {
     const count = req.query.count || findUserById(req.session.userId).review_batch_size;
     // ?ids= (set by the dashboard's "Review" link) opens the EXACT batch it
-    // already previewed, instead of getReviewBatch() shuffling a fresh
-    // (and likely different) one.
+    // already previewed; a direct visit with no ?ids= falls back to today's
+    // stable batch (getTodaysBatch) rather than shuffling a fresh one.
     const ids = req.query.ids ? req.query.ids.split(',').map(Number).filter(Boolean) : [];
-    const batch = ids.length > 0 ? getHighlightsByIds(ids) : getReviewBatch(count);
+    const batch = ids.length > 0 ? getHighlightsByIds(ids) : getTodaysBatch(req.session.userId, count);
     // A feed click opens a single highlight as a card (explicit ?from=feed,
     // set by the feed links) -- that's browsing, not a review session: no
     // "done" screen, and it must NOT count toward the daily streak.
@@ -204,6 +203,7 @@ router.post('/review/:hid', (req, res) => {
 router.post('/review/session/complete', (req, res) => {
     markSessionCompleted(req.session.userId);
     logSessionDay(req.session.userId);
+    markTodaysBatchCompleted(req.session.userId);
     res.json({ ok: true });
 });
 

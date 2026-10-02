@@ -1,4 +1,5 @@
 import { db } from './index.js';
+import { localDateStr } from './streak.js';
 
 const DEFAULT_REVIEW_COUNT = 5;
 const DEFAULT_INTERVAL_DAYS = 3;
@@ -75,6 +76,41 @@ export function getReviewBatch(count = DEFAULT_REVIEW_COUNT) {
         if (!addedThisRound) break; // pool exhausted
     }
     return result;
+}
+
+// The stable "daily review" batch: a dashboard refresh or a direct /review
+// visit (no ?ids=) must keep showing the SAME highlights for the rest of the
+// calendar day, not reshuffle getReviewBatch()'s random pick on every call
+// (Koen: "it's a daily review"). A new batch is only drawn once the day
+// changes, or once today's batch was completed and a fresh one is wanted
+// for a second round the same day (see markTodaysBatchCompleted).
+export function getTodaysBatch(userId, count = DEFAULT_REVIEW_COUNT) {
+    const today = localDateStr(new Date());
+    const row = db.prepare('SELECT highlight_ids, completed_at FROM daily_review_batch WHERE user_id = ? AND date = ?').get(userId, today);
+    if (row && !row.completed_at) {
+        const ids = row.highlight_ids.split(',').map(Number).filter(Boolean);
+        const batch = getHighlightsByIds(ids);
+        if (batch.length > 0) return batch;
+        // Every stored highlight vanished (e.g. all deleted) -- fall through
+        // and draw a fresh batch below instead of returning nothing.
+    }
+    const fresh = getReviewBatch(count);
+    if (fresh.length > 0) {
+        db.prepare(
+            `INSERT INTO daily_review_batch (user_id, date, highlight_ids, completed_at, created_at)
+             VALUES (?, ?, ?, NULL, ?)
+             ON CONFLICT(user_id, date) DO UPDATE SET highlight_ids = excluded.highlight_ids, completed_at = NULL, created_at = excluded.created_at`
+        ).run(userId, today, fresh.map((h) => h.id).join(','), Date.now());
+    }
+    return fresh;
+}
+
+// Called when a review session is fully completed (see routes/web.js's
+// /review/session/complete) -- marks today's batch as done so the NEXT call
+// to getTodaysBatch draws a fresh one instead of replaying the same one.
+export function markTodaysBatchCompleted(userId, now = Date.now()) {
+    const today = localDateStr(new Date(now));
+    db.prepare('UPDATE daily_review_batch SET completed_at = ? WHERE user_id = ? AND date = ?').run(now, userId, today);
 }
 
 export function reviewQueueSize() {

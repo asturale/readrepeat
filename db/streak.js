@@ -1,6 +1,6 @@
 import { db } from './index.js';
 
-function localDateStr(d) {
+export function localDateStr(d) {
     // 'YYYY-MM-DD' in the server's own local TZ (compose.yaml sets
     // TZ=Europe/Amsterdam) -- deliberately NOT toISOString(), which is UTC
     // and would file a session under the wrong calendar day near midnight.
