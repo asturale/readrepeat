@@ -14,7 +14,13 @@ services:
       - ./data:/data
     networks:
       - caddy
+      - kosync
 
 networks:
   caddy:
+    external: true
+  # Optional: shares the network of a crosspoint-sync server so the
+  # crosspoint-sync auto-import feature can reach it by container name.
+  # Remove it (and its entry under the service) if you don't use that.
+  kosync:
     external: true
