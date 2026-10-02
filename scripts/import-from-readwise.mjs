@@ -7,8 +7,8 @@ const READWISE_TOKEN = process.env.READWISE_TOKEN;
 const KNIPSEL_URL = process.env.KNIPSEL_URL || 'http://localhost:3000';
 const KNIPSEL_TOKEN = process.env.KNIPSEL_API_TOKEN;
 
-if (!READWISE_TOKEN) throw new Error('READWISE_TOKEN ontbreekt');
-if (!KNIPSEL_TOKEN) throw new Error('KNIPSEL_API_TOKEN ontbreekt (maak er een aan via /account)');
+if (!READWISE_TOKEN) throw new Error('READWISE_TOKEN is missing');
+if (!KNIPSEL_TOKEN) throw new Error('KNIPSEL_API_TOKEN is missing (create one via /account)');
 
 async function fetchReadwisePage(cursor) {
     const url = new URL('https://readwise.io/api/v2/export/');
@@ -39,7 +39,7 @@ async function importBook(book) {
         }),
     });
     if (!res.ok) {
-        console.error(`  fout bij "${book.title}": HTTP ${res.status} ${await res.text()}`);
+        console.error(`  error for "${book.title}": HTTP ${res.status} ${await res.text()}`);
         return { created: 0, updated: 0, skipped: highlights.length };
     }
     return res.json();
@@ -57,11 +57,11 @@ async function main() {
             totalBooks++;
             totalCreated += result.created || 0;
             totalUpdated += result.updated || 0;
-            console.log(`"${book.title}": +${result.created || 0} nieuw, ${result.updated || 0} bijgewerkt`);
+            console.log(`"${book.title}": +${result.created || 0} new, ${result.updated || 0} updated`);
         }
         cursor = page.nextPageCursor;
     } while (cursor);
-    console.log(`\nKlaar: ${totalBooks} boeken, ${totalCreated} nieuwe highlights, ${totalUpdated} bijgewerkt.`);
+    console.log(`\nDone: ${totalBooks} books, ${totalCreated} new highlights, ${totalUpdated} updated.`);
 }
 
 main().catch((e) => {
