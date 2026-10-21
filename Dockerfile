@@ -1,4 +1,6 @@
 FROM node:22-alpine
+# Basis-OS altijd naar laatste beveiligingsupdates (CVE-scan 21-10-2026)
+RUN apk upgrade --no-cache
 
 # better-sqlite3 needs a native build toolchain at install time on Alpine.
 # fontconfig + dejavu: Alpine ships NO fonts at all by default -- sharp/
