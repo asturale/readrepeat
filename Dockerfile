@@ -10,7 +10,10 @@ RUN apk add --no-cache python3 make g++ fontconfig ttf-dejavu
 
 WORKDIR /app
 COPY package.json ./
-RUN npm install --omit=dev
+# npm itself is only needed at build time: removing it from the final image
+# drops its bundled dependencies (a recurring source of scanner findings in
+# code the app never runs).
+RUN npm install --omit=dev && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY . .
 
 USER node
