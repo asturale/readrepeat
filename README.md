@@ -9,6 +9,29 @@ Self-hosted, open-source Readwise alternative: one place for all your book highl
 - **Retention over collecting** — spaced repetition makes sure highlights actually stick with you, instead of sinking into an archive forever.
 - **An Instagram mode that gives something back** — endless scrolling through your own highlights instead of someone else's content, and it still counts toward your review schedule.
 
+## Screenshots
+
+![Dashboard with the daily review and the highlight feed](docs/screenshots/dashboard.png)
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/review-mobile.png" alt="Daily review on a phone"></td>
+    <td width="33%"><img src="docs/screenshots/discover-mobile.png" alt="Discover: endless scroll through your own highlights"></td>
+    <td width="33%"><img src="docs/screenshots/share-mobile.png" alt="Share a highlight as an image"></td>
+  </tr>
+  <tr>
+    <td align="center">Daily review</td>
+    <td align="center">Discover ("Instagram mode")</td>
+    <td align="center">Share as image</td>
+  </tr>
+</table>
+
+![All books, with covers filled in automatically](docs/screenshots/books.png)
+
+![A book with its highlights and notes](docs/screenshots/book.png)
+
+<sub>Screenshots use a demo account with public-domain books.</sub>
+
 ## Features
 
 **Dashboard**
@@ -100,6 +123,7 @@ First run (either path): open the site and you'll automatically land on `/setup`
 | `HARDCOVER_API_TOKEN` | no | cover/author enrichment; without a token, only the Open Library fallback is used |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | no | web push reminders; generate with `npx web-push generate-vapid-keys` |
 | `VAPID_SUBJECT` | no | a `mailto:` address for the VAPID key |
+| `SHARE_WATERMARK` | no | small footer text on share images (default `ReadRepeat`), e.g. your instance's hostname |
 
 ## One-time Readwise import
 
