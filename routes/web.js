@@ -228,7 +228,10 @@ router.get('/discover', (req, res) => {
     res.render('discover', { initialCards: toDiscoverCards(batch) });
 });
 
-router.get('/api/discover', (req, res) => {
+// Not under /api: that prefix is the token-authenticated API router (mounted
+// first in server.js), which answered this session-based fetch with a 401 --
+// infinite scroll never loaded a second page.
+router.get('/discover/more', (req, res) => {
     const exclude = req.query.exclude ? req.query.exclude.split(',').map(Number).filter(Boolean) : [];
     const batch = getDiscoverBatch(exclude, 8);
     res.json({ cards: toDiscoverCards(batch) });

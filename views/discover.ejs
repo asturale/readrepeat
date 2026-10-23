@@ -157,7 +157,7 @@
     loader.style.display = 'block';
     try {
       const ids = cards.map((c) => c.id).join(',');
-      const res = await fetch('/api/discover?exclude=' + encodeURIComponent(ids));
+      const res = await fetch('/discover/more?exclude=' + encodeURIComponent(ids));
       const data = await res.json();
       if (data.cards.length === 0) {
         exhausted = true;
