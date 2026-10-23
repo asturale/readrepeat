@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:25-alpine
 # Basis-OS altijd naar laatste beveiligingsupdates (CVE-scan 21-10-2026)
 RUN apk upgrade --no-cache
 
