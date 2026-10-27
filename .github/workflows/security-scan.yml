@@ -1,0 +1,68 @@
+name: security-scan
+# Gitleaks (secrets) and Semgrep (code), the same checks as the local pre-commit hook.
+# Semgrep: regels worden gedownload, er gaat geen code naar Semgrep (metrics uit, geen login).
+# Bij push en pull request blokkeren alleen NIEUWE bevindingen (baseline = vorige commit); de wekelijkse
+# run scant alles en is informatief. Bestaande, geaccepteerde vondsten: .gitleaksignore / .semgrepignore.
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        env:
+          GL_VERSION: "8.30.1"
+          GL_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          curl -sSfL -o gl.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GL_VERSION}/gitleaks_${GL_VERSION}_linux_x64.tar.gz"
+          echo "${GL_SHA256}  gl.tgz" | sha256sum -c -
+          tar xzf gl.tgz gitleaks
+          if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            ./gitleaks git --redact --no-banner --exit-code 1 --log-opts="$BEFORE..$HEAD_SHA" .
+          elif [ "$EVENT" = pull_request ]; then
+            ./gitleaks git --redact --no-banner --exit-code 1 --log-opts="$BASE_SHA..$HEAD_SHA" .
+          else
+            ./gitleaks dir --redact --no-banner --exit-code 1 .
+          fi
+
+  semgrep:
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep:1.181.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: semgrep
+        env:
+          SEMGREP_SEND_METRICS: "off"
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          mkdir -p /tmp/rules
+          for p in default secrets; do curl -sSfL -m 120 "https://semgrep.dev/c/p/$p" -o "/tmp/rules/$p.yml"; done
+          BASE=""
+          if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then BASE="$BEFORE"; fi
+          if [ "$EVENT" = pull_request ]; then BASE="$BASE_SHA"; fi
+          ARGS="--metrics=off --disable-version-check --config /tmp/rules/default.yml --config /tmp/rules/secrets.yml --severity ERROR"
+          if [ -n "$BASE" ]; then
+            semgrep scan $ARGS --error --baseline-commit "$BASE" .
+          else
+            semgrep scan $ARGS .
+          fi
