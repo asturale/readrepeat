@@ -20,9 +20,13 @@ jobs:
         with:
           fetch-depth: 0
       - id: tag
+        # Pass refs via env, not ${{ }} inside the script, so a tag name can never become shell code.
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            tag="${{ github.ref_name }}"
+          if [ "$REF_TYPE" = "tag" ]; then
+            tag="$REF_NAME"
           else
             tag=$(git tag -l 'v*' --sort=-v:refname | head -1)
           fi
