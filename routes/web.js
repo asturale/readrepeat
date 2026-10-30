@@ -2,6 +2,8 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { requireLogin } from './middleware.js';
+import { oidcEnabled, passwordLoginEnabled, oidcConfig } from '../lib/oidc.js';
+import { sameOrigin } from './auth.js';
 import { importClippingsText } from '../lib/import-clippings.js';
 import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata, mergeSelectedBooks } from '../db/books.js';
 import {
@@ -16,7 +18,7 @@ import {
     listRandomHighlights,
     listLeastRecentlySeen,
 } from '../db/highlights.js';
-import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode, verifyPassword, setPassword } from '../db/auth.js';
+import { createApiToken, listApiTokens, revokeApiToken, setUserLocale, findUserById, markSessionCompleted, completedSessionToday, setFeedMode, verifyPassword, setPassword, unlinkUserOidc } from '../db/auth.js';
 import { checkPasswordStrength, MIN_LENGTH } from '../lib/password-policy.js';
 import { logSessionDay, getStreak, getMonthCalendar } from '../db/streak.js';
 import { SUPPORTED_LOCALES } from '../lib/i18n.js';
@@ -382,6 +384,12 @@ function settingsLocals(req, extra) {
         storedLocale: user.locale,
         passwordError: null,
         passwordSuccess: false,
+        sso: oidcEnabled ? {
+            provider: oidcConfig.providerName,
+            linked: Boolean(user.oidc_sub && user.oidc_issuer === oidcConfig.issuer),
+            canUnlink: passwordLoginEnabled,
+            status: ['linked', 'taken', 'unlinked'].includes(req.query.sso) ? req.query.sso : null,
+        } : null,
         aiProviders: PROVIDERS,
         aiProvider: getProvider(user.id),
         configuredProviders: configuredProviders(user.id),
@@ -432,6 +440,13 @@ router.post('/account/password', (req, res) => {
     }
     setPassword(user.id, new_password);
     res.render('settings', settingsLocals(req, { passwordSuccess: true }));
+});
+
+// Unlinking is only offered while password sign-in still works (no lock-out).
+router.post('/account/sso/unlink', (req, res) => {
+    if (!sameOrigin(req)) return res.status(403).send('Forbidden');
+    if (oidcEnabled && passwordLoginEnabled) unlinkUserOidc(req.session.userId);
+    res.redirect('/account/settings?sso=unlinked');
 });
 
 router.get('/account/settings', (req, res) => {
