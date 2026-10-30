@@ -52,6 +52,23 @@
     </form>
   </div>
 
+  <% if (typeof sso !== 'undefined' && sso) { %>
+  <div class="card">
+    <h2 style="margin-top:0"><%= t('settings.sso_heading') %></h2>
+    <% if (sso.status === 'linked') { %><p style="color:var(--accent)"><%= t('settings.sso_linked_now', { provider: sso.provider }) %></p><% } %>
+    <% if (sso.status === 'taken') { %><p style="color:var(--danger)"><%= t('settings.sso_taken') %></p><% } %>
+    <% if (sso.linked) { %>
+      <p style="color:var(--text-dim)"><%= t('settings.sso_is_linked', { provider: sso.provider }) %></p>
+      <% if (sso.canUnlink) { %>
+      <form method="post" action="/account/sso/unlink"><button type="submit"><%= t('settings.sso_unlink') %></button></form>
+      <% } %>
+    <% } else { %>
+      <p style="color:var(--text-dim)"><%= t('settings.sso_not_linked', { provider: sso.provider }) %></p>
+      <form method="post" action="/auth/oidc/link"><button type="submit"><%= t('settings.sso_link', { provider: sso.provider }) %></button></form>
+    <% } %>
+  </div>
+  <% } %>
+
   <div class="card">
     <h2 style="margin-top:0"><%= t('settings.password_heading') %></h2>
     <p style="color:var(--text-dim)"><%= t('settings.password_help', { min: 12 }) %></p>

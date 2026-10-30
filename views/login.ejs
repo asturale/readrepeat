@@ -5,13 +5,21 @@
   <div class="card center-form">
     <h1><img src="/icons/icon-192.png" alt="" style="width:1em; height:1em; border-radius:0.2em; vertical-align:-0.12em; margin-right:0.15em;">ReadRepeat</h1>
     <% if (error) { %><div class="error"><%= error %></div><% } %>
+    <% if (typeof oidcEnabled !== 'undefined' && oidcEnabled) { %>
+      <form method="get" action="/auth/oidc/login">
+        <p><button type="submit" style="width:100%"><%= t('login.sso', { provider: oidcProviderName }) %></button></p>
+      </form>
+    <% } %>
+    <% if (typeof passwordLoginEnabled === 'undefined' || passwordLoginEnabled) { %>
+      <% if (typeof oidcEnabled !== 'undefined' && oidcEnabled) { %><p style="text-align:center; opacity:0.7"><%= t('login.or') %></p><% } %>
     <form class="stacked" method="post" action="/login">
       <label><%= t('login.username') %></label>
-      <input type="text" name="username" required autofocus>
+      <input type="text" name="username" required>
       <label><%= t('login.password') %></label>
       <input type="password" name="password" required>
       <p><button type="submit" style="width:100%"><%= t('login.submit') %></button></p>
     </form>
+    <% } %>
   </div>
 </main>
 </body>
