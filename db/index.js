@@ -130,6 +130,11 @@ ensureColumn('highlights', 'heading_level', 'heading_level INTEGER');
 // NULL = no explicit preference, fall back to the browser's Accept-Language
 // on every request (see lib/i18n.js's detectLocale).
 ensureColumn('users', 'locale', 'locale TEXT');
+// SSO identity (lib/oidc.js) this user is linked to: issuer + subject together,
+// since a subject is only unique within one issuer. NULL = not linked.
+ensureColumn('users', 'oidc_issuer', 'oidc_issuer TEXT');
+ensureColumn('users', 'oidc_sub', 'oidc_sub TEXT');
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_oidc_identity ON users (oidc_issuer, oidc_sub)');
 ensureColumn('users', 'review_batch_size', 'review_batch_size INTEGER NOT NULL DEFAULT 5');
 // Hours between reminder pushes; 0 = reminders disabled (default -- opt-in,
 // unlike highlight review itself which is opt-out).

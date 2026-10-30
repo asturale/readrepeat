@@ -124,6 +124,33 @@ First run (either path): open the site and you'll automatically land on `/setup`
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | no | web push reminders; generate with `npx web-push generate-vapid-keys` |
 | `VAPID_SUBJECT` | no | a `mailto:` address for the VAPID key |
 | `SHARE_WATERMARK` | no | small footer text on share images (default `ReadRepeat`), e.g. your instance's hostname |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI` | no | enable "Sign in with SSO", see below |
+
+## Sign in with SSO (OpenID Connect)
+
+Optional. Works with any OpenID Connect provider (Authelia, Authentik, Keycloak, Pocket ID, Tinyauth, ...).
+Register ReadRepeat at your provider as a confidential client with redirect URI
+`https://<your-host>/auth/oidc/callback`, then set:
+
+| Variable | Description |
+|---|---|
+| `OIDC_ISSUER` | the provider's issuer URL (its `/.well-known/openid-configuration` must be reachable from the container) |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | the client credentials from your provider |
+| `OIDC_REDIRECT_URI` | `https://<your-host>/auth/oidc/callback`, exactly as registered |
+| `OIDC_PROVIDER_NAME` | button label, e.g. `Authelia` (default `SSO`) |
+| `OIDC_SCOPE` | default `openid profile email` |
+| `PASSWORD_LOGIN` | `false` = SSO only: the login page goes straight to your provider and password sign-in is refused. Only takes effect when SSO is configured. **Link your account first**, or you lock yourself out |
+| `OIDC_LINK_BY_USERNAME` | `true` = the first SSO sign-in links to the existing account with the same username. Only for providers where users can't pick or change their own username. Default off |
+| `OIDC_USERNAME_CLAIM` | claim used for `OIDC_LINK_BY_USERNAME` (default `preferred_username`) |
+
+SSO never creates accounts. Link your existing account once: sign in with your password, go to
+**Settings → Single sign-on → Link**, and confirm at your provider. The link is stored as issuer +
+subject, so renaming yourself at the provider doesn't matter. API tokens, the Telegram bot and the
+KOReader/Kobo imports keep working with SSO and `PASSWORD_LOGIN=false`.
+
+Security: authorization code flow with PKCE, `state` and `nonce`; the ID token's signature (RS*/ES*
+from the provider's JWKS), issuer, audience, expiry and nonce are checked; the session id is
+regenerated on every sign-in.
 
 ## One-time Readwise import
 
