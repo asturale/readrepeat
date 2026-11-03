@@ -181,6 +181,6 @@ Requires the env vars `READWISE_TOKEN` (your Readwise account token) and `READRE
 ## Security
 
 - Secure by default: setup needs a one-time code from the log, cookies are `Secure`, `HttpOnly` and `SameSite=Lax`, sessions expire after 90 days without a visit and get a new ID at every sign-in.
-- At most 10 failed sign-ins per IP per 15 minutes (in memory, resets on restart). Behind a proxy the app uses the address from `X-Forwarded-For` (one trusted hop): make sure the app port is only reachable through that proxy.
+- Failed sign-ins: at most 10 per IP and 50 in total per 15 minutes (in memory, resets on restart). Behind a proxy the app uses the address from `X-Forwarded-For` (one trusted hop): make sure the app port is only reachable through that proxy.
 - Security headers: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` and a CSP that blocks framing, plugins and foreign form targets. **Accepted risk:** the CSP does not yet restrict scripts, because several pages still use inline scripts.
 - The container runs as an unprivileged user. Passwords are hashed with scrypt; SSO can be pinned to one linked account.
