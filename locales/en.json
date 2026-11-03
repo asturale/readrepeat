@@ -274,6 +274,7 @@
   "login.error_sso": "Signing in with SSO failed. Please try again.",
   "login.error_sso_no_account": "There is no ReadRepeat account for this SSO user.",
   "login.error_password_disabled": "Password sign-in is disabled; use SSO.",
+  "login.error_too_many": "Too many failed attempts. Try again in 15 minutes.",
 
   "setup.title": "Setup",
   "setup.heading": "Welcome to ReadRepeat",
@@ -286,6 +287,9 @@
   "setup.error_password_short": "Password must be at least {min} characters.",
   "setup.error_password_common": "This password is too common and not secure enough -- pick something unique.",
   "setup.error_mismatch": "Passwords do not match.",
+  "setup.code": "Setup code",
+  "setup.code_hint": "Printed in the server log at startup (docker logs readrepeat).",
+  "setup.error_code": "Wrong or missing setup code. Check the server log.",
 
   "404.title": "Not found",
   "404.heading": "404",
