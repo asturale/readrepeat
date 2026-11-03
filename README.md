@@ -75,7 +75,7 @@ Self-hosted, open-source Readwise alternative: one place for all your book highl
 - Installable as a PWA (phone/desktop)
 - Multilingual (NL/EN, automatic from browser language, configurable per user)
 - Strong account security: scrypt password hashing, enforced minimum length (12+) with a blocklist against common passwords, password change
-- Single-user: one-time `/setup` (permanently closed afterwards), session login
+- Single-user: one-time `/setup` protected by a setup code from the server log (permanently closed afterwards), session login with a limit on failed attempts
 
 ## Installation
 
@@ -92,7 +92,7 @@ services:
     image: ghcr.io/asturale/readrepeat:latest
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"   # put a reverse proxy with HTTPS in front
     environment:
       - SESSION_SECRET=change-me-to-a-long-random-string
     volumes:
@@ -113,13 +113,16 @@ docker network create caddy   # if that network doesn't exist yet -- the include
 docker compose up -d --build
 ```
 
-First run (either path): open the site and you'll automatically land on `/setup` to create your account.
+First run (either path): open the site and you'll land on `/setup`. It asks for a one-time setup code, printed in the server log at startup (`docker compose logs app | grep 'Setup code'`), so nobody else can claim a fresh instance before you do.
+
+Serve it over HTTPS (behind Caddy, nginx or a tunnel): session cookies are `Secure` by default and won't be set over plain HTTP. For a trusted LAN without HTTPS, set `COOKIE_SECURE=false`.
 
 ### Environment variables (`.env`)
 
 | Variable | Required | Description |
 |---|---|---|
 | `SESSION_SECRET` | yes | a long random string for session cookies |
+| `COOKIE_SECURE` | no | `false` only for plain-HTTP access on a trusted LAN; default is Secure cookies (HTTPS required) |
 | `HARDCOVER_API_TOKEN` | no | cover/author enrichment; without a token, only the Open Library fallback is used |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | no | web push reminders; generate with `npx web-push generate-vapid-keys` |
 | `VAPID_SUBJECT` | no | a `mailto:` address for the VAPID key |
@@ -174,3 +177,10 @@ Requires the env vars `READWISE_TOKEN` (your Readwise account token) and `READRE
 ```
 
 `source`/`source_id` are optional but are used to recognize duplicate imports on repeated calls.
+
+## Security
+
+- Secure by default: setup needs a one-time code from the log, cookies are `Secure`, `HttpOnly` and `SameSite=Lax`, sessions expire after 90 days without a visit and get a new ID at every sign-in.
+- Failed sign-ins: at most 10 per IP and 50 in total per 15 minutes (in memory, resets on restart). Behind a proxy the app uses the address from `X-Forwarded-For` (one trusted hop): make sure the app port is only reachable through that proxy.
+- Security headers: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` and a CSP that blocks framing, plugins and foreign form targets. **Accepted risk:** the CSP does not yet restrict scripts, because several pages still use inline scripts.
+- The container runs as an unprivileged user. Passwords are hashed with scrypt; SSO can be pinned to one linked account.

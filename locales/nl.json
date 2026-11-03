@@ -274,6 +274,7 @@
   "login.error_sso": "Inloggen via SSO is mislukt. Probeer het opnieuw.",
   "login.error_sso_no_account": "Er is geen ReadRepeat-account voor deze SSO-gebruiker.",
   "login.error_password_disabled": "Inloggen met wachtwoord staat uit; gebruik SSO.",
+  "login.error_too_many": "Te veel mislukte pogingen. Probeer het over 15 minuten opnieuw.",
 
   "setup.title": "Setup",
   "setup.heading": "Welkom bij ReadRepeat",
@@ -286,6 +287,9 @@
   "setup.error_password_short": "Wachtwoord moet minstens {min} tekens zijn.",
   "setup.error_password_common": "Dit wachtwoord komt te vaak voor en is niet veilig genoeg -- kies iets unieks.",
   "setup.error_mismatch": "Wachtwoorden komen niet overeen.",
+  "setup.code": "Installatiecode",
+  "setup.code_hint": "Staat bij het opstarten in de serverlog (docker logs readrepeat).",
+  "setup.error_code": "Verkeerde of ontbrekende installatiecode. Kijk in de serverlog.",
 
   "404.title": "Niet gevonden",
   "404.heading": "404",

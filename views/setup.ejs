@@ -7,6 +7,9 @@
     <p style="color:var(--text-dim); text-align:center;"><%= t('setup.intro') %></p>
     <% if (error) { %><div class="error"><%= error %></div><% } %>
     <form class="stacked" method="post" action="/setup">
+      <label><%= t('setup.code') %></label>
+      <input type="text" name="setup_code" required autocomplete="off">
+      <p style="color:var(--text-dim); font-size:0.9em;"><%= t('setup.code_hint') %></p>
       <label><%= t('setup.username') %></label>
       <input type="text" name="username" required autofocus>
       <label><%= t('setup.password') %></label>
