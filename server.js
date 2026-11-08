@@ -62,6 +62,7 @@ app.use((req, res, next) => {
         }
     }
     res.locals.user = user;
+    res.locals.currentPath = req.path;
     res.locals.locale = locale;
     res.locals.t = translator(locale);
     res.locals.dateLocale = dateLocale(locale);
