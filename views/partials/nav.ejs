@@ -5,6 +5,7 @@
     <nav>
       <a href="/books" title="<%= t('nav.books') %>"><img src="/icons/nav-highlights.png" alt=""></a>
       <a href="/discover" title="<%= t('nav.discover') %>"><img src="/icons/nav-discover.png" alt=""></a>
+      <a href="/photo" title="<%= t('nav.photo_long') %>" class="nav-photo"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></a>
       <a href="/review" title="<%= t('nav.review') %>"><img src="/icons/nav-review.png" alt=""></a>
       <a href="/account" title="<%= t('nav.account') %>"><img src="/icons/nav-account.png" alt=""></a>
     </nav>
@@ -16,3 +17,14 @@
   </form>
   <% } %>
 </header>
+<% if (user) { %>
+<% var p = typeof currentPath !== 'undefined' ? currentPath : ''; %>
+<% var on = function (prefixes) { return prefixes.some(function (x) { return p === x || p.indexOf(x + '/') === 0; }); }; %>
+<nav class="bottombar" aria-label="<%= t('nav.menu') %>">
+  <a href="/books" <%- on(['/books']) ? 'class="active" aria-current="page"' : '' %>><img src="/icons/nav-highlights.png" alt=""><span><%= t('nav.books') %></span></a>
+  <a href="/discover" <%- on(['/discover']) ? 'class="active" aria-current="page"' : '' %>><img src="/icons/nav-discover.png" alt=""><span><%= t('nav.discover') %></span></a>
+  <a href="/photo" class="bottombar-photo<%= on(['/photo']) ? ' active' : '' %>" <%- on(['/photo']) ? 'aria-current="page"' : '' %>><span class="cam"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><%= t('nav.photo') %></span></a>
+  <a href="/review"><img src="/icons/nav-review.png" alt=""><span><%= t('nav.review') %></span></a>
+  <a href="/account" <%- on(['/account', '/import', '/about']) ? 'class="active" aria-current="page"' : '' %>><img src="/icons/nav-account.png" alt=""><span><%= t('nav.account') %></span></a>
+</nav>
+<% } %>

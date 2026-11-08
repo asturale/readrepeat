@@ -5,6 +5,9 @@
   "nav.review": "Review",
   "nav.account": "Account",
   "nav.logout": "Log out",
+  "nav.photo": "Photo",
+  "nav.photo_long": "Highlight from photo",
+  "nav.menu": "Main menu",
 
   "dashboard.title": "Highlights",
   "dashboard.heading": "Your books",
@@ -351,5 +354,5 @@
   "photo.last_used": "Last used",
   "photo.busy": "Busy with other photos. Choose the photo again in a moment.",
   "photo.link": "Highlight from photo",
-  "book.add_from_photo": "or take a photo of the page"
+  "book.add_from_photo": "From photo"
 }

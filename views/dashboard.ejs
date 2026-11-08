@@ -33,10 +33,10 @@
   </div>
   <% } %>
 
-  <p class="page-sub">
-    <%= t('dashboard.stats', { count: totalHighlights, books: bookCount }) %>
-    &middot; <a href="/photo">📷 <%= t('photo.link') %></a>
-  </p>
+  <div class="page-sub" style="display:flex; align-items:center; justify-content:space-between; gap:0.8em; flex-wrap:wrap;">
+    <span><%= t('dashboard.stats', { count: totalHighlights, books: bookCount }) %></span>
+    <a href="/photo" class="btn"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg><%= t('photo.link') %></a>
+  </div>
 
   <% if (bookCount === 0) { %>
     <div class="empty-state card">
