@@ -51,7 +51,7 @@
     <form class="stacked" method="post" action="/books/<%= book.id %>/highlights/new">
       <textarea name="text" rows="3" placeholder="<%= t('book.text_placeholder') %>" required></textarea>
       <input type="text" name="note" placeholder="<%= t('book.note_placeholder') %>" style="margin-top:0.5em; width:100%;">
-      <p><button type="submit"><%= t('book.add_button') %></button></p>
+      <p><button type="submit"><%= t('book.add_button') %></button> <a href="/photo?book=<%= book.id %>">📷 <%= t('book.add_from_photo') %></a></p>
     </form>
   </details>
 

@@ -6,7 +6,10 @@ RUN apk upgrade --no-cache
 # fontconfig + dejavu: Alpine ships NO fonts at all by default -- sharp/
 # librsvg would silently render the share-image's text as blank/tofu without
 # these (confirmed: `Fontconfig error: Cannot load default config file`).
-RUN apk add --no-cache python3 make g++ fontconfig ttf-dejavu
+#
+# tesseract-ocr: text recognition for "highlight from a photo" (English + Dutch).
+RUN apk add --no-cache python3 make g++ fontconfig ttf-dejavu \
+    tesseract-ocr tesseract-ocr-data-eng tesseract-ocr-data-nld
 
 WORKDIR /app
 COPY package.json ./

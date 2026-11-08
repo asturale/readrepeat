@@ -51,6 +51,7 @@ Self-hosted, open-source Readwise alternative: one place for all your book highl
 
 **Highlights**
 - Edit, merge, add manually, delete
+- From a paper book: take a photo of the page, tap the first and last word of the passage, add a page number and note, then pick a book or add a new one (title/author suggestions + cover from Open Library). Text recognition runs locally with Tesseract (English + Dutch); the photo is not stored
 - Inline markdown (`__text__` = highlighter, `**bold**`, `*italic*`, `![alt](url)` = image)
 - Readwise Action Tags (`.h1`/`.h2`/`.h3`/`.cN`) — chapter/paragraph context carried over automatically
 

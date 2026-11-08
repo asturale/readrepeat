@@ -123,7 +123,7 @@ export function listHighlightsForBook(bookId) {
             h.display_chapter = h.chapter || (deepest > 0 ? currentHeadings[deepest] : null);
         }
     }
-    return rows.sort((a, b) => (a.location || '').localeCompare(b.location || '') || a.created_at - b.created_at);
+    return rows.sort((a, b) => (a.location || '').localeCompare(b.location || '', undefined, { numeric: true }) || a.created_at - b.created_at);
 }
 
 export function countHighlights() {
@@ -189,16 +189,21 @@ export function getHighlight(id) {
     return db.prepare('SELECT * FROM highlights WHERE id = ?').get(id);
 }
 
-export function createManualHighlight(bookId, { text, note, color }) {
+// Book you last added a highlight to by hand (manual form or photo).
+export function lastManualBookId() {
+    return db.prepare("SELECT book_id FROM highlights WHERE source = 'manual' ORDER BY id DESC LIMIT 1").get()?.book_id ?? null;
+}
+
+export function createManualHighlight(bookId, { text, note, color, location }) {
     const now = Date.now();
     const sourceId = dedupSourceId(text + ':' + now); // manual entries are never dedup targets
     const processed = processNote(note);
     const info = db
         .prepare(
-            `INSERT INTO highlights (book_id, text, note, color, tags, is_heading, heading_level, source, source_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?, ?)`
+            `INSERT INTO highlights (book_id, text, note, location, color, tags, is_heading, heading_level, source, source_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?, ?)`
         )
-        .run(bookId, text, processed.note, color || null, processed.tag, processed.is_heading, processed.heading_level, sourceId, now, now);
+        .run(bookId, text, processed.note, location || null, color || null, processed.tag, processed.is_heading, processed.heading_level, sourceId, now, now);
     addToReview(info.lastInsertRowid);
     return info.lastInsertRowid;
 }
