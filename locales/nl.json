@@ -348,6 +348,7 @@
   "photo.pick_existing": "Toch een bestaand boek kiezen",
   "photo.choose_book": "Kies een boek of voeg een nieuw boek toe.",
   "photo.save": "Highlight opslaan",
+  "photo.last_used": "Laatst gebruikt",
   "photo.busy": "Even druk met andere foto's. Kies de foto zo opnieuw.",
   "photo.link": "Highlight uit foto",
   "book.add_from_photo": "of maak een foto van de bladzijde"

@@ -189,6 +189,11 @@ export function getHighlight(id) {
     return db.prepare('SELECT * FROM highlights WHERE id = ?').get(id);
 }
 
+// Book you last added a highlight to by hand (manual form or photo).
+export function lastManualBookId() {
+    return db.prepare("SELECT book_id FROM highlights WHERE source = 'manual' ORDER BY id DESC LIMIT 1").get()?.book_id ?? null;
+}
+
 export function createManualHighlight(bookId, { text, note, color, location }) {
     const now = Date.now();
     const sourceId = dedupSourceId(text + ':' + now); // manual entries are never dedup targets

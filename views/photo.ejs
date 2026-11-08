@@ -17,7 +17,13 @@
   .book-pick-list { max-height:320px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); margin-top:0.5em; }
   .book-pick { display:flex; gap:0.7em; align-items:center; padding:0.45em 0.7em; cursor:pointer; border-bottom:1px solid var(--border); }
   .book-pick:last-child { border-bottom:0; }
+  /* undo form.stacked's label/input rules for the list rows */
+  form.stacked .book-pick { display:flex; margin:0; font-size:1em; color:var(--text); font-weight:normal; }
+  form.stacked .book-pick input { width:auto; flex-shrink:0; }
   .book-pick:has(input:checked) { background:var(--accent-dim); }
+  .book-pick.featured { padding:0.7em; }
+  .book-pick.featured .feed-cover { width:64px; }
+  .pick-label { text-transform:uppercase; letter-spacing:0.05em; font-size:0.75em; }
   .book-pick small, .suggestion small { color:var(--text-dim); }
   .suggestion { display:flex; gap:0.7em; align-items:center; width:100%; text-align:left; background:var(--surface-hover); color:var(--text); border:1px solid var(--border); margin-top:0.4em; font-weight:normal; }
   .suggestion:hover { background:var(--border); }
@@ -59,10 +65,10 @@
         <input type="search" id="book-filter" placeholder="<%= t('photo.book_filter') %>" style="width:100%;">
         <div class="book-pick-list">
           <% books.forEach(function(b) { %>
-          <label class="book-pick" data-q="<%= (b.title + ' ' + (b.author || '')).toLowerCase() %>">
+          <label class="book-pick<%= b.id === selectedBookId ? ' featured' : '' %>" data-q="<%= (b.title + ' ' + (b.author || '')).toLowerCase() %>">
             <input type="radio" name="book_id" value="<%= b.id %>" <%= b.id === selectedBookId ? 'checked' : '' %>>
             <% if (b.cover_url) { %><img class="feed-cover" src="<%= b.cover_url %>" alt="" loading="lazy"><% } else { %><div class="feed-cover"></div><% } %>
-            <span><%= b.title %><% if (b.author) { %><br><small><%= b.author %></small><% } %></span>
+            <span><% if (b.id === selectedBookId && b.id === lastBookId) { %><small class="pick-label"><%= t('photo.last_used') %></small><br><% } %><%= b.title %><% if (b.author) { %><br><small><%= b.author %></small><% } %></span>
           </label>
           <% }) %>
         </div>

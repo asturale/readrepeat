@@ -14,6 +14,7 @@ import {
     countHighlights,
     getHighlight,
     createManualHighlight,
+    lastManualBookId,
     updateHighlightText,
     deleteHighlight,
     mergeHighlights,
@@ -155,9 +156,10 @@ router.post('/books/:id/highlights/new', (req, res) => {
 // Highlight from a photo of a paper book: OCR the photo, let the user tap the
 // passage, then attach it to an existing or a new book.
 router.get('/photo', (req, res) => {
-    const selectedBookId = Number(req.query.book) || null;
+    const lastBookId = lastManualBookId();
+    const selectedBookId = Number(req.query.book) || lastBookId;
     const books = listBooksWithCounts('recent').sort((a, b) => (b.id === selectedBookId) - (a.id === selectedBookId));
-    res.render('photo', { books, selectedBookId });
+    res.render('photo', { books, selectedBookId, lastBookId });
 });
 
 router.post('/photo/ocr', express.raw({ type: 'image/*', limit: '25mb' }), async (req, res) => {
