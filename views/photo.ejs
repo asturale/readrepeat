@@ -1,0 +1,261 @@
+<% var title = t('photo.title') %>
+<%- include('partials/head', { title }) %>
+<%- include('partials/nav') %>
+<style>
+  .photo-pickers { display:flex; gap:0.6em; flex-wrap:wrap; }
+  .photo-pickers label { display:inline-block; }
+  .photo-pickers input[type=file] { position:absolute; width:1px; height:1px; opacity:0; }
+  .photo-pickers span { display:inline-block; padding:0.55em 0.85em; border-radius:var(--radius-sm); background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+  .photo-pickers label.secondary span { background:var(--surface-hover); color:var(--text); border:1px solid var(--border); }
+  .photo-pickers input:focus-visible + span { outline:2px solid var(--accent-hover); outline-offset:2px; }
+  #photo-stage { position:relative; margin-top:1em; line-height:0; }
+  #photo-img { width:100%; height:auto; border-radius:var(--radius-sm); }
+  .ocr-word { position:absolute; border-radius:2px; cursor:pointer; background:rgba(79,140,255,0.12); }
+  .ocr-word.sel { background:rgba(255,214,0,0.45); }
+  .ocr-word.anchor { outline:2px solid #ffd600; }
+  #ocr-status { color:var(--text-dim); margin:0.6em 0 0; }
+  .book-pick-list { max-height:320px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); margin-top:0.5em; }
+  .book-pick { display:flex; gap:0.7em; align-items:center; padding:0.45em 0.7em; cursor:pointer; border-bottom:1px solid var(--border); }
+  .book-pick:last-child { border-bottom:0; }
+  .book-pick:has(input:checked) { background:var(--accent-dim); }
+  .book-pick small, .suggestion small { color:var(--text-dim); }
+  .suggestion { display:flex; gap:0.7em; align-items:center; width:100%; text-align:left; background:var(--surface-hover); color:var(--text); border:1px solid var(--border); margin-top:0.4em; font-weight:normal; }
+  .suggestion:hover { background:var(--border); }
+  #new-cover-preview { width:72px; border-radius:4px; }
+</style>
+<main>
+  <h1 class="page-title"><%= t('photo.title') %></h1>
+  <p class="page-sub"><%= t('photo.intro') %></p>
+
+  <div class="card">
+    <div class="photo-pickers">
+      <label><input type="file" accept="image/*" capture="environment" class="photo-input"><span>📷 <%= t('photo.take') %></span></label>
+      <label class="secondary"><input type="file" accept="image/*" class="photo-input"><span><%= t('photo.choose') %></span></label>
+    </div>
+    <div id="photo-stage" hidden>
+      <img id="photo-img" alt="">
+      <div id="photo-words"></div>
+    </div>
+    <p id="ocr-status" role="status"
+       data-reading="<%= t('photo.reading') %>" data-tap="<%= t('photo.tap_hint') %>" data-tap-end="<%= t('photo.tap_end_hint') %>"
+       data-none="<%= t('photo.no_text') %>" data-failed="<%= t('photo.ocr_failed') %>"></p>
+  </div>
+
+  <form id="photo-form" method="post" action="/photo/save" class="stacked" hidden>
+    <div class="card">
+      <label for="hl-text"><%= t('photo.text_label') %></label>
+      <textarea id="hl-text" name="text" rows="5" required maxlength="10000"></textarea>
+      <div style="display:flex; gap:0.6em; flex-wrap:wrap; margin-top:0.5em;">
+        <input type="text" name="location" inputmode="numeric" maxlength="50" placeholder="<%= t('photo.page_placeholder') %>" style="width:8em;">
+        <input type="text" name="note" placeholder="<%= t('book.note_placeholder') %>" style="flex:1; min-width:12em;">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0"><%= t('photo.book_heading') %></h2>
+      <input type="hidden" name="mode" id="mode" value="existing">
+      <div id="existing-book">
+        <% if (books.length > 0) { %>
+        <input type="search" id="book-filter" placeholder="<%= t('photo.book_filter') %>" style="width:100%;">
+        <div class="book-pick-list">
+          <% books.forEach(function(b) { %>
+          <label class="book-pick" data-q="<%= (b.title + ' ' + (b.author || '')).toLowerCase() %>">
+            <input type="radio" name="book_id" value="<%= b.id %>" <%= b.id === selectedBookId ? 'checked' : '' %>>
+            <% if (b.cover_url) { %><img class="feed-cover" src="<%= b.cover_url %>" alt="" loading="lazy"><% } else { %><div class="feed-cover"></div><% } %>
+            <span><%= b.title %><% if (b.author) { %><br><small><%= b.author %></small><% } %></span>
+          </label>
+          <% }) %>
+        </div>
+        <% } %>
+        <p><button type="button" class="secondary" id="new-book-btn">＋ <%= t('photo.new_book') %></button></p>
+      </div>
+      <div id="new-book" hidden>
+        <input type="text" name="new_title" id="new-title" maxlength="500" placeholder="<%= t('photo.new_title') %>" autocomplete="off" style="width:100%;">
+        <input type="text" name="new_author" id="new-author" maxlength="500" placeholder="<%= t('photo.new_author') %>" autocomplete="off" style="width:100%; margin-top:0.5em;">
+        <input type="hidden" name="new_cover_url" id="new-cover">
+        <img id="new-cover-preview" alt="" hidden style="margin-top:0.5em;">
+        <div id="suggestions"></div>
+        <p style="color:var(--text-dim); font-size:0.9em;"><%= t('photo.new_help') %></p>
+        <% if (books.length > 0) { %><p><button type="button" class="secondary" id="existing-book-btn"><%= t('photo.pick_existing') %></button></p><% } %>
+      </div>
+      <p id="book-error" style="color:var(--danger)" hidden><%= t('photo.choose_book') %></p>
+    </div>
+
+    <p><button type="submit"><%= t('photo.save') %></button></p>
+  </form>
+</main>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var stage = $('photo-stage'), img = $('photo-img'), overlay = $('photo-words'), status = $('ocr-status');
+  var form = $('photo-form'), textEl = $('hl-text');
+  var words = [], anchor = null;
+
+  // Rebuild the passage from OCR words: same line joins with a space, a line
+  // ending in a hyphenated word is glued back together, a new paragraph gets a newline.
+  function joinWords(ws) {
+    var out = '';
+    ws.forEach(function (w, i) {
+      if (i === 0) { out = w.t; return; }
+      var prev = ws[i - 1];
+      if (prev.line === w.line) out += ' ' + w.t;
+      else if (/\p{L}-$/u.test(out)) out = out.slice(0, -1) + w.t;
+      else out += (prev.par !== w.par ? '\n' : ' ') + w.t;
+    });
+    return out;
+  }
+
+  function mark(a, b) {
+    overlay.querySelectorAll('.ocr-word').forEach(function (el, i) {
+      el.classList.toggle('sel', i >= a && i <= b);
+      el.classList.toggle('anchor', anchor !== null && i === anchor);
+    });
+  }
+
+  function renderWords() {
+    overlay.textContent = '';
+    words.forEach(function (w, i) {
+      var el = document.createElement('span');
+      el.className = 'ocr-word';
+      el.dataset.i = i;
+      el.style.left = (w.x * 100) + '%';
+      el.style.top = (w.y * 100) + '%';
+      el.style.width = (w.w * 100) + '%';
+      el.style.height = (w.h * 100) + '%';
+      el.title = w.t;
+      overlay.appendChild(el);
+    });
+  }
+
+  overlay.addEventListener('click', function (e) {
+    if (e.target.dataset.i === undefined) return;
+    var i = Number(e.target.dataset.i);
+    if (anchor === null) {
+      anchor = i;
+      mark(i, i);
+      textEl.value = words[i].t;
+      status.textContent = status.dataset.tapEnd;
+    } else {
+      var a = Math.min(anchor, i), b = Math.max(anchor, i);
+      anchor = null;
+      mark(a, b);
+      textEl.value = joinWords(words.slice(a, b + 1));
+      status.textContent = status.dataset.tap;
+    }
+  });
+
+  function onFile(file) {
+    if (!file) return;
+    if (img.src) URL.revokeObjectURL(img.src);
+    img.src = URL.createObjectURL(file);
+    stage.hidden = false;
+    form.hidden = false;
+    words = [];
+    anchor = null;
+    overlay.textContent = '';
+    status.textContent = status.dataset.reading;
+    fetch('/photo/ocr', { method: 'POST', headers: { 'Content-Type': file.type || 'image/jpeg' }, body: file })
+      .then(function (r) { if (!r.ok) throw new Error('ocr'); return r.json(); })
+      .then(function (d) {
+        words = d.words || [];
+        renderWords();
+        status.textContent = words.length ? status.dataset.tap : status.dataset.none;
+      })
+      .catch(function () { status.textContent = status.dataset.failed; });
+  }
+  document.querySelectorAll('.photo-input').forEach(function (input) {
+    input.addEventListener('change', function () { onFile(input.files[0]); input.value = ''; });
+  });
+
+  // Book choice: filter the existing list, or switch to entering a new book.
+  var filter = $('book-filter');
+  if (filter) {
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase();
+      document.querySelectorAll('.book-pick').forEach(function (el) {
+        el.hidden = q !== '' && el.dataset.q.indexOf(q) === -1;
+      });
+    });
+  }
+  var checked = document.querySelector('.book-pick input:checked');
+  if (checked) checked.closest('.book-pick').scrollIntoView({ block: 'nearest' });
+
+  var mode = $('mode'), newTitle = $('new-title'), newAuthor = $('new-author'), newCover = $('new-cover'), preview = $('new-cover-preview'), sugg = $('suggestions');
+  function setMode(m) {
+    mode.value = m;
+    $('existing-book').hidden = m === 'new';
+    $('new-book').hidden = m !== 'new';
+    $('book-error').hidden = true;
+    if (m === 'new') newTitle.focus();
+  }
+  $('new-book-btn').addEventListener('click', function () { setMode('new'); });
+  if (!filter) setMode('new'); // no books yet
+  if ($('existing-book-btn')) $('existing-book-btn').addEventListener('click', function () { setMode('existing'); });
+
+  function setCover(url) {
+    newCover.value = url || '';
+    preview.hidden = !url;
+    if (url) preview.src = url;
+  }
+
+  var timer = null, seq = 0;
+  function lookup() {
+    var q = (newTitle.value + ' ' + newAuthor.value).trim();
+    var mine = ++seq;
+    if (q.length < 3) { sugg.textContent = ''; return; }
+    fetch('/photo/lookup?q=' + encodeURIComponent(q))
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (list) {
+        if (mine !== seq) return; // a newer keystroke already asked again
+        sugg.textContent = '';
+        list.forEach(function (s) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'suggestion';
+          if (s.cover_url) {
+            var c = document.createElement('img');
+            c.className = 'feed-cover';
+            c.src = s.cover_url;
+            c.alt = '';
+            btn.appendChild(c);
+          }
+          var label = document.createElement('span');
+          label.appendChild(document.createTextNode(s.title));
+          if (s.author || s.year) {
+            label.appendChild(document.createElement('br'));
+            var small = document.createElement('small');
+            small.textContent = [s.author, s.year].filter(Boolean).join(' · ');
+            label.appendChild(small);
+          }
+          btn.appendChild(label);
+          btn.addEventListener('click', function () {
+            newTitle.value = s.title;
+            newAuthor.value = s.author || '';
+            setCover(s.cover_url);
+            sugg.textContent = '';
+          });
+          sugg.appendChild(btn);
+        });
+      })
+      .catch(function () {});
+  }
+  [newTitle, newAuthor].forEach(function (el) {
+    el.addEventListener('input', function () {
+      setCover(null); // typed by hand: let the server look up the cover on save
+      clearTimeout(timer);
+      timer = setTimeout(lookup, 450);
+    });
+  });
+
+  form.addEventListener('submit', function (e) {
+    var ok = mode.value === 'new' ? newTitle.value.trim() !== '' : !!document.querySelector('.book-pick input:checked');
+    if (!ok) {
+      e.preventDefault();
+      $('book-error').hidden = false;
+      $('book-error').scrollIntoView({ block: 'center' });
+    }
+  });
+})();
+</script>
+</body>
+</html>

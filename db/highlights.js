@@ -189,16 +189,16 @@ export function getHighlight(id) {
     return db.prepare('SELECT * FROM highlights WHERE id = ?').get(id);
 }
 
-export function createManualHighlight(bookId, { text, note, color }) {
+export function createManualHighlight(bookId, { text, note, color, location }) {
     const now = Date.now();
     const sourceId = dedupSourceId(text + ':' + now); // manual entries are never dedup targets
     const processed = processNote(note);
     const info = db
         .prepare(
-            `INSERT INTO highlights (book_id, text, note, color, tags, is_heading, heading_level, source, source_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?, ?)`
+            `INSERT INTO highlights (book_id, text, note, location, color, tags, is_heading, heading_level, source, source_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?, ?, ?)`
         )
-        .run(bookId, text, processed.note, color || null, processed.tag, processed.is_heading, processed.heading_level, sourceId, now, now);
+        .run(bookId, text, processed.note, location || null, color || null, processed.tag, processed.is_heading, processed.heading_level, sourceId, now, now);
     addToReview(info.lastInsertRowid);
     return info.lastInsertRowid;
 }

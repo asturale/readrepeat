@@ -5,7 +5,10 @@ import { requireLogin } from './middleware.js';
 import { oidcEnabled, passwordLoginEnabled, oidcConfig } from '../lib/oidc.js';
 import { sameOrigin } from './auth.js';
 import { importClippingsText } from '../lib/import-clippings.js';
-import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata, mergeSelectedBooks } from '../db/books.js';
+import { listBooksWithCounts, getBook, setReviewWeight, deleteBook, updateBookMetadata, mergeSelectedBooks, findOrCreateBook, setBookCover } from '../db/books.js';
+import { enrichBookWithFallback } from '../db/hardcover.js';
+import { searchOpenLibrary } from '../db/openlibrary.js';
+import { ocrImage } from '../lib/ocr.js';
 import {
     listHighlightsForBook,
     countHighlights,
@@ -147,6 +150,56 @@ router.post('/books/:id/highlights/new', (req, res) => {
     const { text, note, color } = req.body;
     if (text && text.trim()) createManualHighlight(req.params.id, { text: text.trim(), note, color });
     res.redirect(`/books/${req.params.id}`);
+});
+
+// Highlight from a photo of a paper book: OCR the photo, let the user tap the
+// passage, then attach it to an existing or a new book.
+router.get('/photo', (req, res) => {
+    const selectedBookId = Number(req.query.book) || null;
+    const books = listBooksWithCounts('recent').sort((a, b) => (b.id === selectedBookId) - (a.id === selectedBookId));
+    res.render('photo', { books, selectedBookId });
+});
+
+router.post('/photo/ocr', express.raw({ type: 'image/*', limit: '25mb' }), async (req, res) => {
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'no_image' });
+    try {
+        res.json({ words: await ocrImage(req.body) });
+    } catch (e) {
+        console.error('OCR failed:', e.message);
+        res.status(422).json({ error: 'ocr_failed' });
+    }
+});
+
+router.get('/photo/lookup', async (req, res) => {
+    const q = String(req.query.q || '').trim().slice(0, 200);
+    res.json(q.length < 3 ? [] : await searchOpenLibrary(q));
+});
+
+router.post('/photo/save', (req, res) => {
+    const text = String(req.body.text || '').trim();
+    const note = String(req.body.note || '').trim();
+    const location = String(req.body.location || '').trim().slice(0, 50);
+    if (!text || text.length > 10000 || note.length > 10000) return res.status(400).send('Invalid highlight');
+
+    let book;
+    if (req.body.mode === 'new') {
+        const title = String(req.body.new_title || '').trim();
+        const author = String(req.body.new_author || '').trim().slice(0, 500);
+        const cover = String(req.body.new_cover_url || '').trim();
+        if (!title || title.length > 500) return res.status(400).send('Invalid title');
+        book = findOrCreateBook({ title, author, cover_url: /^https:\/\//.test(cover) && cover.length <= 1000 ? cover : null });
+        if (!book.cover_url) {
+            // Same fire-and-forget enrichment as /api/import: never block the save on it.
+            enrichBookWithFallback(book.title, book.author)
+                .then((meta) => meta && setBookCover(book.id, meta))
+                .catch(() => {});
+        }
+    } else {
+        book = getBook(Number(req.body.book_id) || 0);
+        if (!book) return res.status(400).send('Choose a book');
+    }
+    const hid = createManualHighlight(book.id, { text, note, location });
+    res.redirect(`/books/${book.id}#highlight-${hid}`);
 });
 
 router.post('/books/:id/highlights/:hid/edit', (req, res) => {
