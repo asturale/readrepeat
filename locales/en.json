@@ -348,6 +348,7 @@
   "photo.pick_existing": "Pick an existing book instead",
   "photo.choose_book": "Choose a book or add a new one.",
   "photo.save": "Save highlight",
+  "photo.busy": "Busy with other photos. Choose the photo again in a moment.",
   "photo.link": "Highlight from photo",
   "book.add_from_photo": "or take a photo of the page"
 }

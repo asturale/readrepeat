@@ -123,7 +123,7 @@ export function listHighlightsForBook(bookId) {
             h.display_chapter = h.chapter || (deepest > 0 ? currentHeadings[deepest] : null);
         }
     }
-    return rows.sort((a, b) => (a.location || '').localeCompare(b.location || '') || a.created_at - b.created_at);
+    return rows.sort((a, b) => (a.location || '').localeCompare(b.location || '', undefined, { numeric: true }) || a.created_at - b.created_at);
 }
 
 export function countHighlights() {

@@ -38,7 +38,7 @@
     </div>
     <p id="ocr-status" role="status"
        data-reading="<%= t('photo.reading') %>" data-tap="<%= t('photo.tap_hint') %>" data-tap-end="<%= t('photo.tap_end_hint') %>"
-       data-none="<%= t('photo.no_text') %>" data-failed="<%= t('photo.ocr_failed') %>"></p>
+       data-none="<%= t('photo.no_text') %>" data-failed="<%= t('photo.ocr_failed') %>" data-busy="<%= t('photo.busy') %>"></p>
   </div>
 
   <form id="photo-form" method="post" action="/photo/save" class="stacked" hidden>
@@ -155,13 +155,13 @@
     overlay.textContent = '';
     status.textContent = status.dataset.reading;
     fetch('/photo/ocr', { method: 'POST', headers: { 'Content-Type': file.type || 'image/jpeg' }, body: file })
-      .then(function (r) { if (!r.ok) throw new Error('ocr'); return r.json(); })
+      .then(function (r) { if (!r.ok) throw new Error(r.status === 429 ? 'busy' : 'ocr'); return r.json(); })
       .then(function (d) {
         words = d.words || [];
         renderWords();
         status.textContent = words.length ? status.dataset.tap : status.dataset.none;
       })
-      .catch(function () { status.textContent = status.dataset.failed; });
+      .catch(function (e) { status.textContent = e.message === 'busy' ? status.dataset.busy : status.dataset.failed; });
   }
   document.querySelectorAll('.photo-input').forEach(function (input) {
     input.addEventListener('change', function () { onFile(input.files[0]); input.value = ''; });

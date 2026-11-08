@@ -165,6 +165,7 @@ router.post('/photo/ocr', express.raw({ type: 'image/*', limit: '25mb' }), async
     try {
         res.json({ words: await ocrImage(req.body) });
     } catch (e) {
+        if (e.message === 'busy') return res.status(429).json({ error: 'busy' });
         console.error('OCR failed:', e.message);
         res.status(422).json({ error: 'ocr_failed' });
     }
